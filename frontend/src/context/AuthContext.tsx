@@ -20,7 +20,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('kh_user_profile');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed.name && !parsed.name.includes('Alex')) {
+          if (role === 'ADMIN') {
+            parsed.name = 'Lokesh';
+            parsed.email = 'lokesh.admin@knowledgehub.edu';
+          }
+          return parsed;
+        }
       } catch {
         // fallback
       }
@@ -39,13 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [role]);
 
   const login = (newRole: UserRole, email?: string, name?: string) => {
+    const resolvedName = newRole === 'ADMIN' ? 'Lokesh' : (name && !name.includes('Alex') ? name : 'Om');
+    const resolvedEmail = newRole === 'ADMIN' ? 'lokesh.admin@knowledgehub.edu' : (email || `${resolvedName.toLowerCase()}.student@knowledgehub.edu`);
+
     const newUser: UserProfile = {
-      id: newRole === 'ADMIN' ? 'admin-lokesh' : 'viewer-om',
-      name: name || (newRole === 'ADMIN' ? 'Lokesh' : 'Om'),
-      email: email || (newRole === 'ADMIN' ? 'lokesh.admin@knowledgehub.edu' : 'om.student@knowledgehub.edu'),
+      id: newRole === 'ADMIN' ? 'admin-lokesh' : `viewer-${resolvedName.toLowerCase()}`,
+      name: resolvedName,
+      email: resolvedEmail,
       role: newRole,
       department: 'Computer Science',
     };
+
     setRole(newRole);
     setUser(newUser);
     localStorage.setItem('kh_user_role', newRole);
@@ -53,7 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchRole = (newRole: UserRole) => {
-    login(newRole, user?.email, user?.name);
+    if (newRole === 'ADMIN') {
+      login('ADMIN', 'lokesh.admin@knowledgehub.edu', 'Lokesh');
+    } else {
+      login('VIEWER', 'om.student@knowledgehub.edu', 'Om');
+    }
   };
 
   const logout = () => {
