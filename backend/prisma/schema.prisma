@@ -1,0 +1,53 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Document {
+  id            String          @id @default(uuid())
+  filename      String
+  storedPath    String
+  fileType      String
+  fileSize      Int
+  description   String?
+  uploadDate    DateTime        @default(now())
+  status        String          @default("processing") // processing, ready, failed
+  extractedText String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  tags          DocumentTag[]
+  chunks        DocumentChunk[]
+}
+
+model Tag {
+  id        String        @id @default(uuid())
+  name      String        @unique
+  documents DocumentTag[]
+}
+
+model DocumentTag {
+  documentId String
+  tagId      String
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([documentId, tagId])
+}
+
+model DocumentChunk {
+  id          String   @id @default(uuid())
+  documentId  String
+  chunkText   String
+  pageNumber  Int?
+  chunkIndex  Int
+  embedding   String?  // JSON serialized vector float array
+  createdAt   DateTime @default(now())
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
