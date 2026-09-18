@@ -23,3 +23,32 @@ export interface SystemStatus {
   aiConfigured: boolean;
   model: string;
 }
+
+export type UserRole = 'ADMIN' | 'VIEWER';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatarUrl?: string;
+  department?: string;
+}
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  description: string;
+  iconName: string;
+  count?: number;
+}
+
+export interface DownloadItem {
+  id: string;
+  documentId: string;
+  filename: string;
+  category: string;
+  fileType: string;
+  fileSize: number;
+  downloadedAt: string;
+}

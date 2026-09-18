@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import prisma from '../database/prismaClient.js';
-import { ChunkItem, SearchResult } from '../types/index.js';
+import { randomUUID } from 'crypto';
+import { run, query } from '../database/db.js';
+import { ChunkItem } from '../types/index.js';
 
 export async function addDocumentChunks(documentId: string, chunks: ChunkItem[]): Promise<void> {
   if (chunks.length === 0) return;
@@ -17,7 +18,6 @@ export async function addDocumentChunks(documentId: string, chunks: ChunkItem[])
     }
   }
 
-  // Create document chunk records in database
   for (const chunk of chunks) {
     let embeddingJson: string | null = null;
 
@@ -33,20 +33,16 @@ export async function addDocumentChunks(documentId: string, chunks: ChunkItem[])
       }
     }
 
-    await prisma.documentChunk.create({
-      data: {
-        documentId,
-        chunkText: chunk.chunkText,
-        pageNumber: chunk.pageNumber ?? null,
-        chunkIndex: chunk.chunkIndex,
-        embedding: embeddingJson,
-      },
-    });
+    const chunkId = randomUUID();
+    await run(
+      `INSERT INTO document_chunks (id, documentId, chunkText, pageNumber, chunkIndex, embedding) VALUES (?, ?, ?, ?, ?, ?)`,
+      [chunkId, documentId, chunk.chunkText, chunk.pageNumber ?? null, chunk.chunkIndex, embeddingJson]
+    );
   }
 }
 
 export async function searchSimilarChunks(
-  query: string,
+  userQuery: string,
   topK: number = 5,
   filterDocumentId?: string
 ): Promise<{
@@ -57,17 +53,18 @@ export async function searchSimilarChunks(
   documentId: string;
   documentName: string;
 }[]> {
-  const whereClause: any = {};
+  let sql = `
+    SELECT dc.*, d.filename as documentName 
+    FROM document_chunks dc 
+    JOIN documents d ON dc.documentId = d.id
+  `;
+  const params: any[] = [];
   if (filterDocumentId) {
-    whereClause.documentId = filterDocumentId;
+    sql += ` WHERE dc.documentId = ?`;
+    params.push(filterDocumentId);
   }
 
-  const allChunks = await prisma.documentChunk.findMany({
-    where: whereClause,
-    include: {
-      document: true,
-    },
-  });
+  const allChunks = await query<any>(sql, params);
 
   if (allChunks.length === 0) {
     return [];
@@ -82,7 +79,7 @@ export async function searchSimilarChunks(
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: embeddingModelName });
-      const embedResult = await model.embedContent(query);
+      const embedResult = await model.embedContent(userQuery);
       if (embedResult.embedding && embedResult.embedding.values) {
         queryVector = embedResult.embedding.values;
       }
@@ -94,16 +91,15 @@ export async function searchSimilarChunks(
   const scoredChunks = allChunks.map((chunk) => {
     let score = 0;
 
-    // Vector cosine similarity if vector exists
     if (queryVector && chunk.embedding) {
       try {
         const chunkVector: number[] = JSON.parse(chunk.embedding);
         score = cosineSimilarity(queryVector, chunkVector);
       } catch {
-        score = tfIdfSimilarity(query, chunk.chunkText);
+        score = tfIdfSimilarity(userQuery, chunk.chunkText);
       }
     } else {
-      score = tfIdfSimilarity(query, chunk.chunkText);
+      score = tfIdfSimilarity(userQuery, chunk.chunkText);
     }
 
     return {
@@ -112,21 +108,18 @@ export async function searchSimilarChunks(
       chunkIndex: chunk.chunkIndex,
       score,
       documentId: chunk.documentId,
-      documentName: chunk.document.filename,
+      documentName: chunk.documentName,
     };
   });
 
-  // Sort by score descending and return top K
   return scoredChunks
     .sort((a, b) => b.score - a.score)
     .slice(0, topK)
-    .filter((item) => item.score > 0.05); // Filter out zero/negligible similarity
+    .filter((item) => item.score > 0.05);
 }
 
 export async function deleteDocumentChunks(documentId: string): Promise<void> {
-  await prisma.documentChunk.deleteMany({
-    where: { documentId },
-  });
+  await run(`DELETE FROM document_chunks WHERE documentId = ?`, [documentId]);
 }
 
 function cosineSimilarity(vecA: number[], vecB: number[]): number {
@@ -145,7 +138,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-function tfIdfSimilarity(query: string, text: string): number {
+function tfIdfSimilarity(userQuery: string, text: string): number {
   const tokenize = (str: string) =>
     str
       .toLowerCase()
@@ -153,7 +146,7 @@ function tfIdfSimilarity(query: string, text: string): number {
       .split(/\s+/)
       .filter((w) => w.length > 2);
 
-  const queryTerms = tokenize(query);
+  const queryTerms = tokenize(userQuery);
   const textTerms = tokenize(text);
 
   if (queryTerms.length === 0 || textTerms.length === 0) return 0;
@@ -166,10 +159,8 @@ function tfIdfSimilarity(query: string, text: string): number {
   let matchScore = 0;
   for (const qTerm of queryTerms) {
     if (textTermFreq[qTerm]) {
-      // Reward exact keyword match & frequency
       matchScore += (1 + Math.log(textTermFreq[qTerm])) / queryTerms.length;
     } else {
-      // Check partial substring match
       const partialMatch = textTerms.some((t) => t.includes(qTerm) || qTerm.includes(t));
       if (partialMatch) {
         matchScore += 0.3 / queryTerms.length;

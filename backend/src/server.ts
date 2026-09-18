@@ -40,13 +40,19 @@ app.get('/api/health', (_req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
+import { initDb } from './database/db.js';
+
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`==================================================`);
-    console.log(` Digital Library Backend Server Running `);
-    console.log(` URL: http://localhost:${PORT}`);
-    console.log(` Health check: http://localhost:${PORT}/api/health`);
-    console.log(`==================================================`);
+  initDb().then(() => {
+    app.listen(PORT, () => {
+      console.log(`==================================================`);
+      console.log(` Digital Library Backend Server Running `);
+      console.log(` URL: http://localhost:${PORT}`);
+      console.log(` Health check: http://localhost:${PORT}/api/health`);
+      console.log(`==================================================`);
+    });
+  }).catch((err) => {
+    console.error('Failed to initialize database:', err);
   });
 }
 

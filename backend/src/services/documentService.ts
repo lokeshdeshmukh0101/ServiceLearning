@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import prisma from '../database/prismaClient.js';
+import { randomUUID } from 'crypto';
+import { run, query, get } from '../database/db.js';
 import { extractText } from './textExtractorService.js';
 import { createChunks } from './chunkingService.js';
 import { addDocumentChunks, deleteDocumentChunks } from './vectorSearchService.js';
@@ -16,8 +17,8 @@ export async function createDocument(
   const fileSize = file.size;
   const ext = path.extname(originalFilename).toLowerCase().replace('.', '');
   const fileType = ext || 'unknown';
+  const docId = randomUUID();
 
-  // 1. Parse tags array
   let tagList: string[] = [];
   if (typeof rawTags === 'string') {
     tagList = rawTags
@@ -28,127 +29,92 @@ export async function createDocument(
     tagList = rawTags.map((t) => String(t).trim()).filter((t) => t.length > 0);
   }
 
-  // 2. Create document record in database (status = processing)
-  const doc = await prisma.document.create({
-    data: {
-      filename: originalFilename,
-      storedPath,
-      fileType,
-      fileSize,
-      description: description || null,
-      status: 'processing',
-    },
-  });
+  await run(
+    `INSERT INTO documents (id, filename, storedPath, fileType, fileSize, description, status) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [docId, originalFilename, storedPath, fileType, fileSize, description || null, 'processing']
+  );
 
-  // Attach tags if provided
   if (tagList.length > 0) {
-    await setDocumentTags(doc.id, tagList);
+    await setDocumentTags(docId, tagList);
   }
 
-  // 3. Process text extraction & chunk indexing
   try {
     const extraction = await extractText(storedPath, fileType);
 
     if (extraction.error || !extraction.text || extraction.text.trim().length === 0) {
-      await prisma.document.update({
-        where: { id: doc.id },
-        data: {
-          status: 'ready', // File ready but note text extraction limitation
-          extractedText: extraction.error ? `Extraction Note: ${extraction.error}` : 'No text content extracted.',
-        },
-      });
+      await run(
+        `UPDATE documents SET status = ?, extractedText = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+        ['ready', extraction.error ? `Extraction Note: ${extraction.error}` : 'No text content extracted.', docId]
+      );
     } else {
       const fullText = extraction.text.trim();
       
-      // Update document with extracted text
-      await prisma.document.update({
-        where: { id: doc.id },
-        data: {
-          extractedText: fullText,
-          status: 'ready',
-        },
-      });
+      await run(
+        `UPDATE documents SET status = ?, extractedText = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+        ['ready', fullText, docId]
+      );
 
-      // Split into chunks and build vector index
-      const chunks = createChunks(doc.id, fullText, extraction.pages);
-      await addDocumentChunks(doc.id, chunks);
+      const chunks = createChunks(docId, fullText, extraction.pages);
+      await addDocumentChunks(docId, chunks);
     }
   } catch (err: any) {
-    console.error(`Document processing failed for ${doc.id}:`, err);
-    await prisma.document.update({
-      where: { id: doc.id },
-      data: {
-        status: 'failed',
-        extractedText: `Processing error: ${err?.message || 'Unknown error'}`,
-      },
-    });
+    console.error(`Document processing failed for ${docId}:`, err);
+    await run(
+      `UPDATE documents SET status = ?, extractedText = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+      ['failed', `Processing error: ${err?.message || 'Unknown error'}`, docId]
+    );
   }
 
-  return await getDocumentById(doc.id);
+  return await getDocumentById(docId);
 }
 
 export async function getAllDocuments(
-  query?: string,
+  userQuery?: string,
   tagFilter?: string,
   typeFilter?: string
 ): Promise<DocumentMetadata[]> {
-  const where: any = {};
+  let sql = `SELECT * FROM documents WHERE 1=1`;
+  const params: any[] = [];
 
   if (typeFilter && typeFilter.trim() !== '') {
-    where.fileType = typeFilter.toLowerCase();
+    sql += ` AND LOWER(fileType) = ?`;
+    params.push(typeFilter.toLowerCase());
   }
 
-  if (query && query.trim() !== '') {
-    const q = query.trim().toLowerCase();
-    where.OR = [
-      { filename: { contains: q } },
-      { description: { contains: q } },
-      { extractedText: { contains: q } },
-    ];
+  if (userQuery && userQuery.trim() !== '') {
+    const q = `%${userQuery.trim().toLowerCase()}%`;
+    sql += ` AND (LOWER(filename) LIKE ? OR LOWER(description) LIKE ? OR LOWER(extractedText) LIKE ?)`;
+    params.push(q, q, q);
   }
 
   if (tagFilter && tagFilter.trim() !== '') {
-    where.tags = {
-      some: {
-        tag: {
-          name: { equals: tagFilter.trim().toLowerCase() },
-        },
-      },
-    };
+    sql += ` AND id IN (
+      SELECT dt.documentId FROM document_tags dt 
+      JOIN tags t ON dt.tagId = t.id 
+      WHERE LOWER(t.name) = ?
+    )`;
+    params.push(tagFilter.trim().toLowerCase());
   }
 
-  const docs = await prisma.document.findMany({
-    where,
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  sql += ` ORDER BY createdAt DESC`;
 
-  return docs.map(formatDocument);
+  const rows = await query<any>(sql, params);
+
+  const formattedDocs: DocumentMetadata[] = [];
+  for (const doc of rows) {
+    const formatted = await formatDocument(doc);
+    formattedDocs.push(formatted);
+  }
+
+  return formattedDocs;
 }
 
 export async function getDocumentById(id: string): Promise<DocumentMetadata> {
-  const doc = await prisma.document.findUnique({
-    where: { id },
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-  });
-
+  const doc = await get<any>(`SELECT * FROM documents WHERE id = ?`, [id]);
   if (!doc) {
     throw new Error(`Document with ID ${id} not found.`);
   }
-
-  return formatDocument(doc);
+  return await formatDocument(doc);
 }
 
 export async function updateDocument(
@@ -156,10 +122,7 @@ export async function updateDocument(
   updates: { description?: string; tags?: string[] }
 ): Promise<DocumentMetadata> {
   if (updates.description !== undefined) {
-    await prisma.document.update({
-      where: { id },
-      data: { description: updates.description },
-    });
+    await run(`UPDATE documents SET description = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`, [updates.description, id]);
   }
 
   if (updates.tags !== undefined) {
@@ -170,12 +133,11 @@ export async function updateDocument(
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const doc = await prisma.document.findUnique({ where: { id } });
+  const doc = await get<any>(`SELECT * FROM documents WHERE id = ?`, [id]);
   if (!doc) {
     return;
   }
 
-  // 1. Delete physical file from disk safely
   if (fs.existsSync(doc.storedPath)) {
     try {
       await fs.promises.unlink(doc.storedPath);
@@ -184,27 +146,13 @@ export async function deleteDocument(id: string): Promise<void> {
     }
   }
 
-  // 2. Delete document chunks & vector records
   await deleteDocumentChunks(id);
-
-  // 3. Delete document tag relations explicitly
-  await prisma.documentTag.deleteMany({
-    where: { documentId: id },
-  });
-
-  // 4. Delete Prisma document record
-  await prisma.document.delete({
-    where: { id },
-  });
+  await run(`DELETE FROM document_tags WHERE documentId = ?`, [id]);
+  await run(`DELETE FROM documents WHERE id = ?`, [id]);
 }
 
 export async function getLibraryStats(): Promise<SystemStatus> {
-  const docs = await prisma.document.findMany({
-    select: {
-      fileType: true,
-      fileSize: true,
-    },
-  });
+  const docs = await query<any>(`SELECT fileType, fileSize FROM documents`);
 
   const totalDocuments = docs.length;
   const totalStorageBytes = docs.reduce((acc, d) => acc + d.fileSize, 0);
@@ -237,34 +185,31 @@ export async function getLibraryStats(): Promise<SystemStatus> {
 }
 
 async function setDocumentTags(documentId: string, tagNames: string[]) {
-  // Delete existing tags for document
-  await prisma.documentTag.deleteMany({
-    where: { documentId },
-  });
+  await run(`DELETE FROM document_tags WHERE documentId = ?`, [documentId]);
 
   for (const rawName of tagNames) {
     const cleanName = rawName.trim().toLowerCase();
     if (!cleanName) continue;
 
-    // Upsert Tag
-    const tag = await prisma.tag.upsert({
-      where: { name: cleanName },
-      update: {},
-      create: { name: cleanName },
-    });
+    let tag = await get<any>(`SELECT id FROM tags WHERE name = ?`, [cleanName]);
+    let tagId = tag ? tag.id : null;
 
-    // Create relation
-    await prisma.documentTag.create({
-      data: {
-        documentId,
-        tagId: tag.id,
-      },
-    });
+    if (!tagId) {
+      tagId = randomUUID();
+      await run(`INSERT INTO tags (id, name) VALUES (?, ?)`, [tagId, cleanName]);
+    }
+
+    await run(`INSERT INTO document_tags (documentId, tagId) VALUES (?, ?)`, [documentId, tagId]);
   }
 }
 
-function formatDocument(doc: any): DocumentMetadata {
-  const tags = doc.tags ? doc.tags.map((t: any) => t.tag.name) : [];
+async function formatDocument(doc: any): DocumentMetadata {
+  const tagRows = await query<any>(
+    `SELECT t.name FROM tags t JOIN document_tags dt ON t.id = dt.tagId WHERE dt.documentId = ?`,
+    [doc.id]
+  );
+  const tags = tagRows.map((r) => r.name);
+
   return {
     id: doc.id,
     filename: doc.filename,
