@@ -13,6 +13,7 @@ export const ManageMaterialsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'format' | 'size'>('newest');
 
   const [selectedMaterial, setSelectedMaterial] = useState<Document | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
@@ -57,10 +58,27 @@ export const ManageMaterialsPage: React.FC = () => {
     if (categoryFilter && (!item.tags || !item.tags.some((t) => t.toLowerCase().includes(categoryFilter.toLowerCase())))) {
       return false;
     }
-    if (typeFilter && item.fileType.toLowerCase() !== typeFilter.toLowerCase()) {
-      return false;
+    if (typeFilter) {
+      const itemType = item.fileType.toLowerCase();
+      const targetType = typeFilter.toLowerCase();
+      if (targetType === 'txt' && itemType !== 'txt' && itemType !== 'md' && itemType !== 'markdown') return false;
+      if (targetType === 'docx' && itemType !== 'docx' && itemType !== 'doc') return false;
+      if (targetType !== 'txt' && targetType !== 'docx' && itemType !== targetType) return false;
     }
     return true;
+  });
+
+  const sortedMaterials = [...filteredMaterials].sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.uploadDate || b.createdAt).getTime() - new Date(a.uploadDate || a.createdAt).getTime();
+    if (sortBy === 'oldest') return new Date(a.uploadDate || a.createdAt).getTime() - new Date(b.uploadDate || b.createdAt).getTime();
+    if (sortBy === 'format') {
+      const cmp = (a.fileType || '').localeCompare(b.fileType || '');
+      if (cmp !== 0) return cmp;
+      return a.filename.localeCompare(b.filename);
+    }
+    if (sortBy === 'name') return a.filename.localeCompare(b.filename);
+    if (sortBy === 'size') return b.fileSize - a.fileSize;
+    return 0;
   });
 
   const formatSize = (bytes: number) => {
@@ -86,7 +104,7 @@ export const ManageMaterialsPage: React.FC = () => {
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -125,19 +143,33 @@ export const ManageMaterialsPage: React.FC = () => {
               <option value="">All Formats</option>
               <option value="pdf">PDF Books (.pdf)</option>
               <option value="docx">Word (.docx)</option>
-              <option value="txt">Text (.txt)</option>
-              <option value="md">Markdown (.md)</option>
+              <option value="txt">Text & Markdown (.txt / .md)</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={sortBy}
+              onChange={(e: any) => setSortBy(e.target.value)}
+              className="w-full text-xs p-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            >
+              <option value="newest">Sort: Newest First</option>
+              <option value="oldest">Sort: Oldest First</option>
+              <option value="name">Sort: Title (A-Z)</option>
+              <option value="format">Sort: File Format (PDF, DOCX, TXT)</option>
+              <option value="size">Sort: Size (Largest)</option>
             </select>
           </div>
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-          <span>Showing {filteredMaterials.length} material(s)</span>
+          <span>Showing {sortedMaterials.length} material(s)</span>
           <button
             onClick={() => {
               setSearch('');
               setCategoryFilter('');
               setTypeFilter('');
+              setSortBy('newest');
             }}
             className="px-3 py-1 text-xs text-slate-600 hover:text-slate-900 border border-slate-300 rounded-md bg-white flex items-center gap-1"
           >
@@ -151,12 +183,14 @@ export const ManageMaterialsPage: React.FC = () => {
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold uppercase tracking-wider">
-              <th className="px-4 py-3">Title</th>
+              <th className="px-4 py-3 cursor-pointer hover:text-blue-600" onClick={() => setSortBy('name')}>Title</th>
               <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Size</th>
+              <th className="px-4 py-3 cursor-pointer hover:text-blue-600" onClick={() => setSortBy('format')}>
+                Type / Format {sortBy === 'format' && '▼'}
+              </th>
+              <th className="px-4 py-3 cursor-pointer hover:text-blue-600" onClick={() => setSortBy('size')}>Size</th>
               <th className="px-4 py-3">Uploaded By</th>
-              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3 cursor-pointer hover:text-blue-600" onClick={() => setSortBy('newest')}>Date</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -168,14 +202,14 @@ export const ManageMaterialsPage: React.FC = () => {
                 <TableRowSkeleton />
                 <TableRowSkeleton />
               </>
-            ) : filteredMaterials.length === 0 ? (
+            ) : sortedMaterials.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   No materials match your current search and filter criteria.
                 </td>
               </tr>
             ) : (
-              filteredMaterials.map((mat) => (
+              sortedMaterials.map((mat) => (
                 <tr key={mat.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 font-semibold text-slate-800 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-600 shrink-0" />

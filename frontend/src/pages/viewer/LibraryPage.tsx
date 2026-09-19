@@ -12,10 +12,12 @@ export const LibraryPage: React.FC = () => {
   const initialQuery = searchParams.get('q') || '';
   const initialCategory = searchParams.get('category') || '';
 
+  const initialFileType = searchParams.get('type') || '';
+
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
-  const [selectedFileType, setSelectedFileType] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
+  const [selectedFileType, setSelectedFileType] = useState(initialFileType);
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'format'>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [materials, setMaterials] = useState<Document[]>([]);
@@ -24,14 +26,14 @@ export const LibraryPage: React.FC = () => {
 
   useEffect(() => {
     fetchMaterials();
-  }, [searchParams]);
+  }, [searchParams, selectedFileType]);
 
   const fetchMaterials = async () => {
     setLoading(true);
     try {
-      const q = searchParams.get('q') || '';
-      const cat = searchParams.get('category') || '';
-      const type = selectedFileType;
+      const q = searchParams.get('q') || searchQuery;
+      const cat = searchParams.get('category') || selectedCategory;
+      const type = searchParams.get('type') || selectedFileType;
 
       const docs = await api.getDocuments(q, cat, type);
       setMaterials(docs);
@@ -47,6 +49,7 @@ export const LibraryPage: React.FC = () => {
     const params: Record<string, string> = {};
     if (searchQuery.trim()) params.q = searchQuery.trim();
     if (selectedCategory) params.category = selectedCategory;
+    if (selectedFileType) params.type = selectedFileType;
     setSearchParams(params);
   };
 
@@ -54,6 +57,7 @@ export const LibraryPage: React.FC = () => {
     setSearchQuery('');
     setSelectedCategory('');
     setSelectedFileType('');
+    setSortBy('newest');
     setSearchParams({});
   };
 
@@ -63,6 +67,11 @@ export const LibraryPage: React.FC = () => {
     }
     if (sortBy === 'oldest') {
       return new Date(a.uploadDate || a.createdAt).getTime() - new Date(b.uploadDate || b.createdAt).getTime();
+    }
+    if (sortBy === 'format') {
+      const formatCompare = (a.fileType || '').localeCompare(b.fileType || '');
+      if (formatCompare !== 0) return formatCompare;
+      return a.filename.localeCompare(b.filename);
     }
     return a.filename.localeCompare(b.filename);
   });
@@ -162,6 +171,7 @@ export const LibraryPage: React.FC = () => {
               <option value="newest">Sort: Newest First</option>
               <option value="oldest">Sort: Oldest First</option>
               <option value="name">Sort: Alphabetical (A-Z)</option>
+              <option value="format">Sort: File Format (PDF, DOCX, TXT)</option>
             </select>
           </div>
         </div>
@@ -223,11 +233,13 @@ export const LibraryPage: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold uppercase tracking-wider">
-                <th className="px-4 py-3">Material Title</th>
+                <th className="px-4 py-3 cursor-pointer hover:text-blue-600" onClick={() => setSortBy('name')}>Material Title</th>
                 <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Format</th>
+                <th className="px-4 py-3 cursor-pointer hover:text-blue-600 flex items-center gap-1" onClick={() => setSortBy('format')}>
+                  Format {sortBy === 'format' && '▼'}
+                </th>
                 <th className="px-4 py-3">Size</th>
-                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3 cursor-pointer hover:text-blue-600" onClick={() => setSortBy('newest')}>Date</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>

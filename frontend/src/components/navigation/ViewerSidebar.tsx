@@ -11,6 +11,10 @@ import {
   LogOut,
   X,
   ShieldCheck,
+  Upload,
+  FileText,
+  Users,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,7 +23,7 @@ interface SidebarProps {
 }
 
 export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
-  const { user, logout, switchRole } = useAuth();
+  const { user, role, logout, switchRole } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -33,6 +37,15 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
     { label: 'Categories', icon: Grid, path: '/library/categories' },
     { label: 'Recently Added', icon: Clock, path: '/library/recent' },
     { label: 'My Downloads', icon: Download, path: '/library/downloads' },
+  ];
+
+  const adminNavItems = [
+    { label: 'Admin Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { label: 'Upload Material', icon: Upload, path: '/admin/materials/upload' },
+    { label: 'Manage Materials', icon: FileText, path: '/admin/materials' },
+    { label: 'Manage Users', icon: Users, path: '/admin/users' },
+    { label: 'Manage Categories', icon: Grid, path: '/admin/categories' },
+    { label: 'System Settings', icon: Settings, path: '/admin/settings' },
   ];
 
   return (
@@ -59,16 +72,16 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
         {/* User Badge */}
         <div className="px-5 py-3 bg-navy-900/60 flex items-center justify-between text-xs border-b border-navy-700">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span className={`w-2 h-2 rounded-full ${role === 'ADMIN' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
             <span className="text-slate-300 font-medium truncate max-w-[120px]">{user?.name}</span>
           </div>
           <button
-            onClick={() => switchRole('ADMIN')}
+            onClick={() => switchRole(role === 'ADMIN' ? 'VIEWER' : 'ADMIN')}
             className="text-[11px] font-semibold text-blue-300 hover:text-white bg-blue-600/30 hover:bg-blue-600/50 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
-            title="Switch to Faculty Admin"
+            title={role === 'ADMIN' ? 'Switch to Viewer Mode' : 'Switch to Faculty Admin'}
           >
             <ShieldCheck className="w-3 h-3" />
-            Admin Mode
+            {role === 'ADMIN' ? 'Viewer Mode' : 'Admin Mode'}
           </button>
         </div>
 
@@ -91,6 +104,33 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
               <span>{item.label}</span>
             </NavLink>
           ))}
+
+          {(role === 'ADMIN' || user?.role === 'ADMIN') && (
+            <div className="pt-3 pb-1 border-t border-navy-700/60 mt-3 space-y-1">
+              <div className="px-3 pb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Faculty Admin Console
+                </span>
+              </div>
+              {adminNavItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={onCloseMobile}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-teal-600 text-white shadow-sm font-semibold'
+                        : 'text-amber-200/90 hover:bg-navy-700 hover:text-white'
+                    }`
+                  }
+                >
+                  <item.icon className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
         </nav>
       </div>
 

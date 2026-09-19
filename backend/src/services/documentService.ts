@@ -77,8 +77,15 @@ export async function getAllDocuments(
   const params: any[] = [];
 
   if (typeFilter && typeFilter.trim() !== '') {
-    sql += ` AND LOWER(fileType) = ?`;
-    params.push(typeFilter.toLowerCase());
+    const tf = typeFilter.trim().toLowerCase();
+    if (tf === 'txt' || tf === 'md' || tf === 'markdown') {
+      sql += ` AND LOWER(fileType) IN ('txt', 'md', 'markdown')`;
+    } else if (tf === 'docx' || tf === 'doc') {
+      sql += ` AND LOWER(fileType) IN ('docx', 'doc')`;
+    } else {
+      sql += ` AND LOWER(fileType) = ?`;
+      params.push(tf);
+    }
   }
 
   if (userQuery && userQuery.trim() !== '') {
