@@ -1,0 +1,87 @@
+================================================================================
+DIGITAL LIBRARY & SERVICE LEARNING DOCUMENT MANAGEMENT SYSTEM
+Project Overview, Architecture, Tech Stack & Presentation Talking Points
+================================================================================
+
+1. EXECUTIVE OVERVIEW (ELEVATOR PITCH)
+--------------------------------------------------------------------------------
+The Digital Library & Service Learning Document Management System is a full-stack
+web platform designed to store, organize, search, inspect, and manage multi-format
+educational and service-learning materials.
+
+It bridges the gap between educators/administrators and students/viewers by providing:
+  - Admin Portal: For uploading materials, managing categories, editing tags, tracking storage, and managing users.
+  - Viewer Portal: For discovering materials, searching full-text document content, previewing PDFs in-browser, and tracking personal downloads.
+
+
+2. TECH STACK & ARCHITECTURE
+--------------------------------------------------------------------------------
+FRONTEND:
+  - Framework: React (v18) + TypeScript + Vite
+  - Styling: Tailwind CSS (Dark Mode & Glassmorphic UI)
+  - Components & Icons: Lucide React Icons
+  - HTTP Client: Axios
+  - Routing: React Router DOM (v6)
+
+BACKEND:
+  - Runtime: Node.js + Express.js + TypeScript
+  - Database: SQLite (via sqlite3 client) - lightweight, zero-config relational DB
+  - File Upload Handler: Multer middleware with UUID filename sanitization
+  - Document Text Parsers:
+      * pdf-parse: Full-text extraction and page mapping for PDFs
+      * mammoth: Structured raw text parsing for Microsoft Word (.docx) files
+      * UTF-8 Buffer Reader: Direct text indexing for Plain Text (.txt) and Markdown (.md)
+
+
+3. KEY USER ROLES & FEATURES
+--------------------------------------------------------------------------------
+ADMIN / CONTRIBUTOR ROLE:
+  - Dashboard & Analytics: Live statistics on total documents, storage used, format breakdowns, and database health diagnostics.
+  - Upload Portal: Drag-and-drop file upload with category tagging, custom tags, descriptions, and file size validation (up to 50MB).
+  - Material & Category Management: Edit document metadata, delete files, and structure learning categories.
+  - User & System Administration: Manage user permissions and system settings.
+
+VIEWER / STUDENT ROLE:
+  - Interactive Library: View materials in Grid or Table layout options.
+  - Full-Text Search Engine: Real-time search across filenames, custom tags, and extracted document text.
+  - Category & Format Filtering: Quick filtering by file formats (.pdf, .docx, .txt, .md) or subjects/categories.
+  - Document Inspector:
+      * Embedded PDF Viewer iframe for reading PDFs inside the browser.
+      * Interactive full-text viewer with line wrapping.
+      * One-click original file downloader.
+  - Personal Activity Tracking: Recently viewed documents log, download history, and user profile page.
+
+
+4. HOW DOCUMENT PROCESSING WORKS (DATA FLOW)
+--------------------------------------------------------------------------------
+1. FILE UPLOAD & VALIDATION:
+   User submits a document (.pdf, .docx, .txt, .md). The server verifies file extension and ensures size is under 50MB.
+
+2. STORAGE & SANITIZATION:
+   The file is assigned a unique timestamp/UUID prefix to prevent path traversal and stored safely in the /uploads directory.
+
+3. TEXT EXTRACTION:
+   - PDFs are parsed using 'pdf-parse' to extract text and record page boundaries.
+   - DOCX files are parsed using 'mammoth' to extract clean raw text.
+   - TXT and MD files are ingested directly via UTF-8 buffer.
+
+4. DATABASE INDEXING:
+   Document metadata, file paths, tags, categories, and full extracted text are stored in the SQLite database (dev.db).
+
+5. SEARCH & IN-BROWSER PREVIEW:
+   Users query the system via REST APIs. The frontend renders document metadata cards and opens a Document Inspector modal for inline viewing and text reading.
+
+
+5. DEMO TALKING POINTS (PRESENTATION CHEAT SHEET)
+--------------------------------------------------------------------------------
+Point 1: Multi-Format Support
+"Unlike standard platforms that only support PDFs, our system natively parses PDFs, Word documents (.docx), Markdown notes, and plain text files in one centralized hub."
+
+Point 2: Instant Full-Text In-Browser Inspection
+"Students don't need to download files to see if they contain what they need. They can search actual document content and read extracted text or view PDF previews right inside the browser."
+
+Point 3: Role-Based Workflow Separation
+"The platform separates admin management (uploading, editing, category organization, system metrics) from student exploration (searching, filtering, inspecting, tracking downloads) to keep the UI clean and tailored."
+
+Point 4: Lightweight & Cloud-Independent Architecture
+"The entire system is completely self-contained using Node.js and SQLite. It requires no expensive cloud databases or third-party servers to run locally, making it highly accessible and easy to deploy."

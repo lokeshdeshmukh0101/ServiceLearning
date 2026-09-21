@@ -1,0 +1,76 @@
+================================================================================
+STEPS TO RUN THE DIGITAL LIBRARY & SERVICE LEARNING PROJECT ON A NEW DEVICE
+================================================================================
+
+PREREQUISITES:
+--------------------------------------------------------------------------------
+1. Node.js (v18.x or higher) installed. Download from: https://nodejs.org
+2. Git (if cloning from a repository) or copy the project folder via USB/ZIP.
+
+
+STEP 1: GET THE PROJECT ONTO THE NEW COMPUTER
+--------------------------------------------------------------------------------
+Copy the "service learning" folder onto the new computer, or clone it:
+   git clone <YOUR_REPOSITORY_URL>
+   cd "service learning"
+
+
+STEP 2: SET UP AND RUN THE BACKEND SERVER
+--------------------------------------------------------------------------------
+Open Terminal #1 in the project root:
+
+1. Navigate to backend:
+   cd backend
+
+2. Install all dependencies:
+   npm install
+
+3. Start backend development server:
+   npm run dev
+
+Note:
+  - Backend server starts at: http://localhost:5000
+  - The SQLite database (dev.db) and uploads storage directory are auto-created.
+
+
+STEP 3: SET UP AND RUN THE FRONTEND APP
+--------------------------------------------------------------------------------
+Open Terminal #2 (leave Terminal #1 running in the background):
+
+1. Navigate to frontend:
+   cd frontend
+
+2. Install all dependencies:
+   npm install
+
+3. Start frontend development server:
+   npm run dev
+
+Note:
+  - Frontend app will start at: http://localhost:3000
+
+
+STEP 4: OPEN IN BROWSER
+--------------------------------------------------------------------------------
+Open your web browser and navigate to:
+   http://localhost:3000
+
+
+COMMAND SUMMARY CHEAT SHEET:
+--------------------------------------------------------------------------------
+[TERMINAL 1 - BACKEND]
+   cd backend
+   npm install
+   npm run dev
+
+[TERMINAL 2 - FRONTEND]
+   cd frontend
+   npm install
+   npm run dev
+
+
+OPTIONAL: TRANSFERRING EXISTING DOCUMENTS & DATABASE DATA
+--------------------------------------------------------------------------------
+To carry over existing uploaded files and database records to the new computer:
+1. Copy "backend/dev.db" to the backend folder on the new computer.
+2. Copy "backend/uploads/" folder to the backend folder on the new computer.
