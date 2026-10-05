@@ -15,6 +15,7 @@ import {
   FileText,
   Users,
   Settings,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -49,54 +50,65 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   ];
 
   return (
-    <aside className="w-64 bg-navy-800 text-slate-100 min-h-screen flex flex-col justify-between border-r border-navy-900 select-none">
+    <aside className="w-64 bg-slate-950 text-slate-200 min-h-screen flex flex-col justify-between border-r border-slate-800/80 select-none shadow-2xl relative z-20">
       <div>
         {/* Brand Header */}
-        <div className="p-5 border-b border-navy-700 flex items-center justify-between">
+        <div className="p-5 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 text-white rounded-lg shadow-sm">
+            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/20 ring-1 ring-white/20">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-white leading-tight tracking-tight">KnowledgeHub</h1>
-              <p className="text-[11px] text-slate-300 font-medium">Digital Learning Library</p>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-base font-extrabold text-white tracking-tight">KnowledgeHub</h1>
+              </div>
+              <p className="text-[11px] text-indigo-400 font-medium tracking-wide">Service Learning Library</p>
             </div>
           </div>
           {onCloseMobile && (
-            <button onClick={onCloseMobile} className="md:hidden text-slate-400 hover:text-white">
+            <button onClick={onCloseMobile} className="md:hidden text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
               <X className="w-5 h-5" />
             </button>
           )}
         </div>
 
-        {/* User Badge */}
-        <div className="px-5 py-3 bg-navy-900/60 flex items-center justify-between text-xs border-b border-navy-700">
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${role === 'ADMIN' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-            <span className="text-slate-300 font-medium truncate max-w-[120px]">{user?.name}</span>
+        {/* User Status Bar */}
+        <div className="px-4 py-3 bg-slate-900/80 border-b border-slate-800/60 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${role === 'ADMIN' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${role === 'ADMIN' ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+            </span>
+            <span className="text-slate-300 font-semibold truncate">{user?.name}</span>
           </div>
           <button
             onClick={() => switchRole(role === 'ADMIN' ? 'VIEWER' : 'ADMIN')}
-            className="text-[11px] font-semibold text-blue-300 hover:text-white bg-blue-600/30 hover:bg-blue-600/50 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+            className="text-[10px] font-bold tracking-wider uppercase text-indigo-300 hover:text-white bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 shrink-0"
             title={role === 'ADMIN' ? 'Switch to Viewer Mode' : 'Switch to Faculty Admin'}
           >
-            <ShieldCheck className="w-3 h-3" />
-            {role === 'ADMIN' ? 'Viewer Mode' : 'Admin Mode'}
+            <ShieldCheck className="w-3 h-3 text-indigo-400" />
+            {role === 'ADMIN' ? 'Viewer' : 'Admin'}
           </button>
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1.5">
+          <div className="px-3 pt-2 pb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-indigo-400" /> Navigation
+            </span>
+          </div>
+
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={onCloseMobile}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm font-semibold'
-                    : 'text-slate-300 hover:bg-navy-700 hover:text-white'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/30'
+                    : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100 hover:translate-x-0.5'
                 }`
               }
             >
@@ -106,9 +118,9 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
           ))}
 
           {(role === 'ADMIN' || user?.role === 'ADMIN') && (
-            <div className="pt-3 pb-1 border-t border-navy-700/60 mt-3 space-y-1">
+            <div className="pt-4 pb-1 border-t border-slate-800/80 mt-4 space-y-1.5">
               <div className="px-3 pb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5" /> Faculty Admin Console
                 </span>
               </div>
@@ -118,10 +130,10 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
                   to={item.path}
                   onClick={onCloseMobile}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                       isActive
-                        ? 'bg-teal-600 text-white shadow-sm font-semibold'
-                        : 'text-amber-200/90 hover:bg-navy-700 hover:text-white'
+                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/25 border border-amber-400/30'
+                        : 'text-amber-200/80 hover:bg-slate-900 hover:text-amber-100 hover:translate-x-0.5'
                     }`
                   }
                 >
@@ -135,15 +147,15 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
       </div>
 
       {/* Footer Navigation */}
-      <div className="p-3 border-t border-navy-700 space-y-1">
+      <div className="p-3 border-t border-slate-800/80 space-y-1.5 bg-slate-950/60">
         <NavLink
           to="/library/profile"
           onClick={onCloseMobile}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+            `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
               isActive
-                ? 'bg-blue-600 text-white font-semibold'
-                : 'text-slate-300 hover:bg-navy-700 hover:text-white'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100'
             }`
           }
         >
@@ -153,7 +165,7 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-red-500/10 hover:text-red-400 border border-transparent hover:border-red-500/20 transition-all duration-200"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           <span>Logout</span>
@@ -162,3 +174,4 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
     </aside>
   );
 };
+
