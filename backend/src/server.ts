@@ -1,59 +1,81 @@
+/**
+ * server.ts
+ * Main entry point for KnowledgeHub Backend.
+ */
+
+import './config/bootstrapEnv.js';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
+
+// Route imports
 import documentRoutes from './routes/documentRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import summaryRoutes from './routes/summaryRoutes.js';
+import quizRoutes from './routes/quizRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
 
-dotenv.config();
+// Middleware imports
+import { errorHandler } from './middleware/errorHandler.js';
+import { initDb } from './database/db.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true,
-  })
-);
+// ─── Global Rate Limit ────────────────────────────────────────────────────────
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ─── Middleware Setup ─────────────────────────────────────────────────────────
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+}));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// Serve uploaded files statically for download/preview
+// Serve uploaded files as static content (documents only — screenshots are served via authorized route)
 const uploadsPath = path.join(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsPath));
 
-// API Routes
+// ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/documents', documentRoutes);
+app.use('/api/documents', summaryRoutes);
+app.use('/api', quizRoutes);            // /api/documents/:id/quiz, /api/quiz/:id
 app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
-// Health check endpoint
+// Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', message: 'Digital Library Backend is running smoothly.' });
+  res.json({ status: 'ok', message: 'KnowledgeHub backend is running.' });
 });
 
-// Global Error Handler
+// Global error handler
 app.use(errorHandler);
 
-import { initDb } from './database/db.js';
-
+// ─── Start Server ─────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  initDb().then(() => {
-    app.listen(PORT, () => {
-      console.log(`==================================================`);
-      console.log(` Digital Library Backend Server Running `);
-      console.log(` URL: http://localhost:${PORT}`);
-      console.log(` Health check: http://localhost:${PORT}/api/health`);
-      console.log(`==================================================`);
+  initDb()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`--------------------------------------------------`);
+        console.log(` KnowledgeHub Backend running at http://localhost:${PORT}`);
+        console.log(` Health check: http://localhost:${PORT}/api/health`);
+        console.log(`--------------------------------------------------`);
+      });
+    })
+    .catch((err) => {
+      console.error('Database initialization failed:', err);
+      process.exit(1);
     });
-  }).catch((err) => {
-    console.error('Failed to initialize database:', err);
-  });
 }
 
 export default app;

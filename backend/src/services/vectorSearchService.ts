@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { randomUUID } from 'crypto';
 import { run, query } from '../database/db.js';
 import { ChunkItem } from '../types/index.js';
@@ -6,30 +6,25 @@ import { ChunkItem } from '../types/index.js';
 export async function addDocumentChunks(documentId: string, chunks: ChunkItem[]): Promise<void> {
   if (chunks.length === 0) return;
 
-  const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY;
-  const embeddingModelName = process.env.EMBEDDING_MODEL || 'text-embedding-004';
-  
-  let genAI: GoogleGenerativeAI | null = null;
-  if (apiKey && apiKey.trim().length > 0) {
-    try {
-      genAI = new GoogleGenerativeAI(apiKey);
-    } catch (e) {
-      console.warn('Failed to initialize GoogleGenerativeAI for embeddings, using fallback.');
-    }
-  }
+  const apiKey = getConfiguredApiKey();
+  const embeddingModelName = getConfiguredEmbeddingModel();
+  const genAI = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
   for (const chunk of chunks) {
     let embeddingJson: string | null = null;
 
     if (genAI) {
       try {
-        const model = genAI.getGenerativeModel({ model: embeddingModelName });
-        const embedResult = await model.embedContent(chunk.chunkText);
-        if (embedResult.embedding && embedResult.embedding.values) {
-          embeddingJson = JSON.stringify(embedResult.embedding.values);
+        const embedResult = await genAI.models.embedContent({
+          model: embeddingModelName,
+          contents: chunk.chunkText,
+        });
+        const values = embedResult.embeddings?.[0]?.values;
+        if (values) {
+          embeddingJson = JSON.stringify(values);
         }
-      } catch (err: any) {
-        console.warn(`Embedding API call failed for chunk ${chunk.chunkIndex}, using text fallback:`, err?.message || err);
+      } catch {
+        console.warn(`Embedding API call failed for chunk ${chunk.chunkIndex}; using text fallback.`);
       }
     }
 
@@ -70,21 +65,24 @@ export async function searchSimilarChunks(
     return [];
   }
 
-  const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY;
-  const embeddingModelName = process.env.EMBEDDING_MODEL || 'text-embedding-004';
+  const apiKey = getConfiguredApiKey();
+  const embeddingModelName = getConfiguredEmbeddingModel();
 
   let queryVector: number[] | null = null;
 
   if (apiKey && apiKey.trim().length > 0) {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: embeddingModelName });
-      const embedResult = await model.embedContent(userQuery);
-      if (embedResult.embedding && embedResult.embedding.values) {
-        queryVector = embedResult.embedding.values;
+      const genAI = new GoogleGenAI({ apiKey });
+      const embedResult = await genAI.models.embedContent({
+        model: embeddingModelName,
+        contents: userQuery,
+      });
+      const values = embedResult.embeddings?.[0]?.values;
+      if (values) {
+        queryVector = values;
       }
-    } catch (err) {
-      console.warn('Query embedding generation failed, falling back to TF-IDF text similarity.');
+    } catch {
+      console.warn('Query embedding generation failed; using text similarity.');
     }
   }
 
@@ -120,6 +118,20 @@ export async function searchSimilarChunks(
 
 export async function deleteDocumentChunks(documentId: string): Promise<void> {
   await run(`DELETE FROM document_chunks WHERE documentId = ?`, [documentId]);
+}
+
+function getConfiguredApiKey(): string {
+  const value = (process.env.LLM_API_KEY || process.env.GEMINI_API_KEY || '').trim();
+  return value.replace(/^(['"])(.*)\1$/, '$2').trim();
+}
+
+function getConfiguredEmbeddingModel(): string {
+  const value = (process.env.EMBEDDING_MODEL || 'gemini-embedding-001').trim();
+  const cleaned = value.replace(/^(['"])(.*)\1$/, '$2').trim();
+  if (!cleaned || cleaned === 'text-embedding-004') {
+    return 'gemini-embedding-001';
+  }
+  return cleaned;
 }
 
 function cosineSimilarity(vecA: number[], vecB: number[]): number {

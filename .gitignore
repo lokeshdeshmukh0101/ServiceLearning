@@ -15,6 +15,14 @@ backend/prisma/*.db
 backend/prisma/*.db-journal
 uploads/*
 !uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/screenshots/*
+!backend/screenshots/.gitkeep
+**/uploads/*
+!**/uploads/.gitkeep
+**/screenshots/*
+!**/screenshots/.gitkeep
 
 # Environment variables
 .env

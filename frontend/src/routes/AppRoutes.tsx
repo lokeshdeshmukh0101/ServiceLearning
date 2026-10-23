@@ -18,6 +18,7 @@ import { EditMaterialPage } from '../pages/admin/EditMaterialPage';
 import { ManageCategoriesPage } from '../pages/admin/ManageCategoriesPage';
 import { ManageUsersPage } from '../pages/admin/ManageUsersPage';
 import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
+import { AuditLogPage } from '../pages/admin/AuditLogPage';
 
 import { NotFoundPage } from '../pages/NotFoundPage';
 
@@ -132,6 +133,14 @@ export const AppRoutes: React.FC = () => {
         element={
           <AdminLayout>
             <AdminSettingsPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/audit"
+        element={
+          <AdminLayout>
+            <AuditLogPage />
           </AdminLayout>
         }
       />

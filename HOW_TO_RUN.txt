@@ -1,0 +1,279 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              KnowledgeHub — Complete Setup Guide (Step by Step)             ║
+║         For anyone, even with zero web development experience               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+This guide will help you run KnowledgeHub on your computer.
+Read every step carefully. Do NOT skip any step.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — WHAT YOU NEED TO INSTALL FIRST (one-time setup)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 — Install Node.js
+────────────────────────
+  1. Open your web browser (Chrome, Edge, etc.)
+  2. Go to:  https://nodejs.org
+  3. Click the big green button that says "LTS" (recommended for most users)
+  4. Download the installer (it will be a .msi file on Windows)
+  5. Open the downloaded file and click Next → Next → Install
+  6. When done, click Finish
+
+  ✅ To check it worked:
+     - Press the Windows key + R on your keyboard
+     - Type:  cmd   and press Enter
+     - In the black window, type:   node --version   and press Enter
+     - You should see something like:  v20.11.0
+     - Also type:  npm --version   and press Enter
+     - You should see something like:  10.2.4
+
+STEP 2 — Get a FREE Google Gemini AI API Key
+─────────────────────────────────────────────
+  The AI Summary and Quiz features need a free Google API key.
+  This is completely FREE. No credit card needed.
+
+  1. Go to:  https://aistudio.google.com/app/apikey
+  2. Sign in with your Google account (Gmail)
+  3. Click "Create API Key"
+  4. Select "Create API key in new project"
+  5. Copy the key that appears — it looks like:  AIzaSyAbc123XYZ...
+     (Keep this key safe. Do NOT share it publicly.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — CONFIGURE THE PROJECT (one-time setup)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 3 — Add Your API Key to the Project
+──────────────────────────────────────────
+  1. Open File Explorer (the folder icon on your taskbar)
+  2. Navigate to the project folder:
+        C:\Users\<YourName>\Desktop\service learning\backend
+     (Replace <YourName> with your Windows username, e.g. "lokes")
+  3. Look for a file named:  .env
+     (If you can't see it, enable hidden files: 
+      In File Explorer → View → check "Hidden items")
+  4. Right-click on the .env file → Open with → Notepad
+  5. Find the line that says:
+        LLM_API_KEY=""
+  6. Paste your API key between the quotes, like this:
+        LLM_API_KEY="AIzaSyAbc123XYZ..."
+  7. Save the file: Press Ctrl + S, then close Notepad
+
+  ⚠️  IMPORTANT: The quotes must stay. Only replace what's between them.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — INSTALL PROJECT DEPENDENCIES (one-time setup)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You only need to do Steps 4 and 5 ONCE. After that, skip to Section 4.
+
+STEP 4 — Install Backend Dependencies
+───────────────────────────────────────
+  1. Press Windows key + R
+  2. Type:  cmd   and press Enter
+  3. In the black Command Prompt window, type the following and press Enter:
+
+        cd "C:\Users\lokes\Desktop\service learning\backend"
+
+     (Change "lokes" to your actual Windows username if different)
+
+  4. Now type this and press Enter:
+
+        npm install
+
+  5. Wait for it to finish. This may take 1–3 minutes.
+     You will see lots of text scrolling — that is normal.
+     When it shows your folder path again at the bottom (like C:\...>),
+     it means it's done.
+
+STEP 5 — Install Frontend Dependencies
+────────────────────────────────────────
+  1. In the same Command Prompt window, type and press Enter:
+
+        cd "C:\Users\lokes\Desktop\service learning\frontend"
+
+  2. Type this and press Enter:
+
+        npm install
+
+  3. Wait for it to finish (1–3 minutes). Same as above.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — RUNNING THE APP (do this every time you want to use it)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You need TWO Command Prompt windows open at the same time.
+
+STEP 6 — Start the Backend Server (Window 1)
+──────────────────────────────────────────────
+  1. Press Windows key + R → type cmd → press Enter
+     (This opens the first Command Prompt window)
+
+  2. Type and press Enter:
+        cd "C:\Users\lokes\Desktop\service learning\backend"
+
+  3. Type and press Enter:
+        npm run dev
+
+  4. You should see a message like:
+        KnowledgeHub Backend running at http://localhost:5000
+        Health check: http://localhost:5000/api/health
+
+  ✅ The backend is running! Leave this window open. Do NOT close it.
+
+STEP 7 — Start the Frontend Server (Window 2)
+───────────────────────────────────────────────
+  1. Press Windows key + R → type cmd → press Enter
+     (This opens a SECOND Command Prompt window)
+
+  2. Type and press Enter:
+        cd "C:\Users\lokes\Desktop\service learning\frontend"
+
+  3. Type and press Enter:
+        npm run dev
+
+  4. You should see a message like:
+        VITE v5.x.x  ready in xxx ms
+        ➜  Local:   http://localhost:3000/
+
+  ✅ The frontend is running! Leave this window open. Do NOT close it.
+
+STEP 8 — Open the App in Chrome
+─────────────────────────────────
+  1. Open Google Chrome
+  2. In the address bar at the top, type:
+        http://localhost:3000
+     and press Enter
+
+  3. The KnowledgeHub login page will appear!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — USING THE APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 9 — Log In
+────────────────
+  On the login page you will see two quick login buttons:
+
+  ┌─────────────────────────────────────────────────────┐
+  │  "Login as Student (Om)"    → Student view          │
+  │  "Login as Admin (Lokesh)"  → Full admin access     │
+  └─────────────────────────────────────────────────────┘
+
+  Click either one to enter the app.
+
+  ► Student (Om):
+    - Browse the library
+    - View and download documents
+    - Generate AI Summaries of documents
+    - Take AI-generated Quizzes
+    - Switch language: English / Hindi / Marathi
+
+  ► Admin (Lokesh):
+    - Everything students can do, PLUS:
+    - Upload new documents (PDF, DOCX, TXT, MD)
+    - Manage all uploaded materials
+    - View audit logs
+    - See admin analytics dashboard
+
+STEP 10 — Using AI Features (Summary & Quiz)
+─────────────────────────────────────────────
+  1. Go to Library → click on any document card
+  2. A panel opens on the right side
+  3. Click the "AI Summary" tab → click "Generate AI Summary"
+     → The AI reads the document and gives you a smart summary
+  4. Click the "Quiz" tab → click "Start Quiz"
+     → Configure: number of questions, difficulty, language
+     → Click "Generate Quiz" to get document-based questions
+     → Answer questions → click "Submit Quiz" to see your score
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — STOPPING THE APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  When you are done using the app:
+
+  1. Click on the first Command Prompt window (backend)
+     Press:  Ctrl + C
+     Type:   Y   and press Enter if asked
+
+  2. Click on the second Command Prompt window (frontend)
+     Press:  Ctrl + C
+
+  3. Close both windows.
+
+  The next time you want to use the app, just repeat Steps 6, 7, and 8.
+  (You do NOT need to run npm install again.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — TROUBLESHOOTING (if something goes wrong)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEM: "AI provider not configured" message in the app
+  ► Solution: You forgot to add your API key.
+    Go back to STEP 3 and add your Gemini API key to the .env file.
+    Then STOP the backend (Ctrl+C) and START it again (npm run dev).
+
+PROBLEM: "'npm' is not recognized as a command"
+  ► Solution: Node.js was not installed correctly.
+    Go back to STEP 1 and reinstall Node.js.
+    After installing, close all Command Prompt windows and open a new one.
+
+PROBLEM: "Port 3000 already in use" or "Port 5000 already in use"
+  ► Solution: The app is already running in another window.
+    Close all Command Prompt windows, then start fresh from STEP 6.
+
+PROBLEM: The page at http://localhost:3000 shows an error
+  ► Check that BOTH Command Prompt windows are still open and running.
+    If one of them closed or shows an error, restart it using STEP 6 or 7.
+
+PROBLEM: "Cannot find module" error when running npm run dev
+  ► You may have skipped the install step.
+    Run npm install again in both backend and frontend folders (Steps 4 & 5).
+
+PROBLEM: AI Summary/Quiz returns an error about the API key being invalid
+  ► Your API key may be wrong. Double-check it at:
+    https://aistudio.google.com/app/apikey
+    Copy it again carefully and update the .env file (STEP 3).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUICK REFERENCE CARD (save this!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  EVERY TIME YOU WANT TO RUN THE APP:
+
+  Window 1 (Backend):
+    cd "C:\Users\lokes\Desktop\service learning\backend"
+    npm run dev
+
+  Window 2 (Frontend):
+    cd "C:\Users\lokes\Desktop\service learning\frontend"
+    npm run dev
+
+  Then open Chrome and go to:  http://localhost:3000
+
+  ─────────────────────────────────────────────────────
+  IMPORTANT URLS:
+    App (use this):         http://localhost:3000
+    Backend health check:   http://localhost:5000/api/health
+    AI Key setup:           https://aistudio.google.com/app/apikey
+  ─────────────────────────────────────────────────────
+
+  SUPPORTED DOCUMENT TYPES FOR UPLOAD:
+    ✅ PDF (.pdf)
+    ✅ Word Document (.docx)
+    ✅ Plain Text (.txt)
+    ✅ Markdown (.md)
+    ❌ Old Word (.doc) — not supported, use .docx
+    ❌ PowerPoint (.pptx / .ppt) — not supported
+
+  LANGUAGES SUPPORTED:
+    🇺🇸 English (EN)
+    🇮🇳 Hindi (HI)
+    🇮🇳 Marathi (MR)
+  ─────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Created for: KnowledgeHub — Service Learning Project
+Last updated: October 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

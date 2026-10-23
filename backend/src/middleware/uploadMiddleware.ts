@@ -1,3 +1,12 @@
+/**
+ * uploadMiddleware.ts
+ * Multer configuration for document uploads.
+ * - Extension allowlist
+ * - Server-generated filenames (no user-supplied paths)
+ * - 50 MB max
+ * Magic byte validation is done post-upload in the controller.
+ */
+
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -12,30 +21,37 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadsDir);
   },
-  filename: (_req, file, cb) => {
-    // Sanitize filename and prevent collision with timestamp prefix
-    const sanitizedOriginal = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-    cb(null, `${uniquePrefix}-${sanitizedOriginal}`);
+  filename: (_req, _file, cb) => {
+    // Server-generated filename — user-supplied name is NOT used in the path
+    const id = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `doc-${id}`);
   },
 });
 
-const allowedExtensions = ['.pdf', '.docx', '.doc', '.txt', '.md'];
+// Strict allowlist — extension only at this stage; magic bytes checked in controller
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.txt', '.md']);
+const LEGACY_EXTENSIONS = new Set(['.doc', '.ppt', '.pptx']);
 
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const ext = path.extname(file.originalname).toLowerCase();
-  if (allowedExtensions.includes(ext)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Unsupported file type. Please upload PDF, DOCX, TXT, or Markdown (.md) files.'));
+  if (LEGACY_EXTENSIONS.has(ext)) {
+    cb(new Error(`Format ${ext} is not supported. Please convert to DOCX or PDF.`));
+    return;
   }
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    cb(new Error('Unsupported file type. Accepted: PDF, DOCX, TXT, MD.'));
+    return;
+  }
+  cb(null, true);
 };
 
-// 50 MB max file size limit
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024,
+    fileSize: 50 * 1024 * 1024, // 50 MB
+    files: 10,
   },
 });
+
+export { uploadsDir };
