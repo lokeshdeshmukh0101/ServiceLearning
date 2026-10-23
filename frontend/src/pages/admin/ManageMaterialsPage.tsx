@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import { MaterialModal } from '../../components/materials/MaterialModal';
 import { DeleteModal } from '../../components/ui/DeleteModal';
 import { TableRowSkeleton } from '../../components/ui/SkeletonLoaders';
+import { AdminNavTabs } from '../../components/navigation/AdminNavTabs';
 
 export const ManageMaterialsPage: React.FC = () => {
   const [materials, setMaterials] = useState<Document[]>([]);
@@ -88,7 +89,8 @@ export const ManageMaterialsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-16">
+      <AdminNavTabs />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <h1 className="text-2xl font-bold text-navy-800">Manage Learning Materials</h1>

@@ -88,18 +88,21 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/categories/:id — Delete category
+// DELETE /api/categories/:id — Delete category (by id or name)
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const existing = await get<any>('SELECT id FROM categories WHERE id = ?', [id]);
+    const existing = await get<any>(
+      'SELECT id, name FROM categories WHERE id = ? OR LOWER(name) = LOWER(?)',
+      [id, id]
+    );
     if (!existing) {
       res.status(404).json({ error: 'Category not found' });
       return;
     }
 
-    await run('DELETE FROM categories WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Category deleted' });
+    await run('DELETE FROM categories WHERE id = ?', [existing.id]);
+    res.json({ success: true, message: `Category "${existing.name}" deleted successfully` });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete category' });
   }

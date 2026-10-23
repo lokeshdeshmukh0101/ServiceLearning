@@ -4,6 +4,7 @@ import { useAudit } from '../../context/AuditContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { api, type ManagedUser } from '../../services/api';
+import { AdminNavTabs } from '../../components/navigation/AdminNavTabs';
 
 function QuotaBar({ used, quota, isDark }: { used: number; quota: number; isDark: boolean }) {
   const safeQuota = Math.max(1, quota);
@@ -189,7 +190,8 @@ export const ManageUsersPage: React.FC = () => {
   const totalQuotaMB = users.reduce((s, u) => s + (u.quotaMB || 0), 0);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-6 animate-fade-in pb-16">
+      <AdminNavTabs />
       {/* Header */}
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
         <div>

@@ -24,7 +24,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   const navGroup1 = [
     { label: t('nav.adminDashboard'), icon: LayoutDashboard, path: '/admin/dashboard' },
     { label: t('nav.library'), icon: Library, path: '/library' },
-    { label: t('nav.categories'), icon: Grid, path: '/admin/categories' },
+    { label: t('nav.manageCategories'), icon: Grid, path: '/admin/categories' },
   ];
 
   const navGroup2 = [
