@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, Download, FileText, Calendar, Tag, User, Eye, Check, Edit3,
   Sparkles, Loader2, BookOpen, Hash, Brain, Compass, MessageSquarePlus,
@@ -149,9 +150,17 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
     ? (material.extractedText.match(new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
     : 0;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fade-in">
-      <div className={`rounded-3xl shadow-2xl border w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden transition-colors duration-300 ${bg} ${border}`}>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className={`rounded-3xl shadow-2xl border w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden transition-colors duration-300 z-[9991] ${bg} ${border}`}
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* ─── Header ──────────────────────────────────────────────── */}
         <div className={`px-6 py-4 border-b flex items-center justify-between ${headerBg} ${border}`}>
@@ -566,7 +575,8 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
         documentId={material.id}
         documentTitle={material.filename}
       />
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
 interface DeleteModalProps {
@@ -19,9 +20,17 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isDeleting) onCancel();
+      }}
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4 z-[10000]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-full bg-red-100 text-red-600">
@@ -63,6 +72,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
