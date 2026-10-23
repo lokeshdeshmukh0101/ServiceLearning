@@ -1,149 +1,161 @@
-# 📚 Digital Library & Document Management System
+# 🎓 KnowledgeHub — Intelligent Digital Learning Library
 
-A clean, modern **Digital Library & Document Management** web application. Upload, store, organize, tag, search, and inspect your multi-format documents in a responsive dark-mode workspace.
+> **Core USP: Upload once. Learn in your language. Practice at your level.**
 
----
-
-## 🌟 Key Features
-
-- 📄 **Multi-Format Document Upload**: Support for PDF, DOCX, TXT, and Markdown (`.md`) files up to 50MB.
-- ⚡ **Automated Text Extraction**: Extracts full text and maps page boundaries for instant viewing.
-- 🔍 **Search & Filtering**: Search across filenames, tags, or content. Filter easily by file format.
-- 📌 **Tagging & Metadata Management**: Organize files with custom tags, descriptions, and view mode options (Grid/Table).
-- 👁️ **Interactive Document Inspector**: Full extracted text reader, PDF preview frame, tag editor, and file downloader.
-- 📊 **Dashboard & Metrics**: Live metrics for total documents, storage used, PDF/DOCX count, and database health check.
+KnowledgeHub is an AI-powered educational document management and learning platform designed for colleges, educators, and students. It transforms static academic documents (PDFs, Word docs, lecture notes, lab manuals) into interactive, multilingual learning experiences with automated text extraction, conceptual AI summaries, interactive quiz generation, and synchronized category workflows.
 
 ---
 
-## 🛠️ Tech Stack
+## 💡 What Makes KnowledgeHub Special?
+
+1. **Multilingual AI Understanding**
+   - Read and learn complex academic documents in **English**, **Hindi (हिंदी)**, and **Marathi (मराठी)** with a single click.
+   - Built-in text-to-speech audio synthesis allows students to listen to simplified explanations in their native language.
+
+2. **Smart Learning Path & Interactive Quizzes**
+   - Automatically generates targeted comprehension questions, multiple-choice quizzes, and practice exercises directly from the uploaded material.
+   - Immediate feedback helps students test their understanding and retain key concepts.
+
+3. **Live Category & Subject Domain Management**
+   - Full CRUD (Create, Read, Update, Delete) for academic categories with zero reload delay.
+   - Edits or deletions dynamically synchronize across both Admin and Student dashboards, the upload form, and the library filters in real time.
+
+4. **Role-Based Access Control (RBAC)**
+   - Unified interface supporting both **Faculty Administrators** and **Student Viewers**.
+   - Manage real users, adjust storage quotas, toggle roles (`Faculty Admin` ↔ `Student Viewer`), and view real-time system metrics directly backed by SQLite.
+
+5. **Deep Document Inspection & Search**
+   - Full-text search with live keyword highlighting across PDF, DOCX, TXT, and Markdown files.
+   - In-app document reader with adjustable typography sizes, download capabilities, and an integrated feedback/issue reporting system.
+
+---
+
+## 🛠️ Architecture & Tech Stack
 
 ### Frontend
-- **Framework**: React + Vite + TypeScript
-- **Styling**: Tailwind CSS + Modern dark mode glassmorphism
-- **Icons**: Lucide React
-- **HTTP Client**: Axios
-- **Routing**: React Router DOM
+- **Framework**: React 18 with TypeScript + Vite
+- **Styling**: Tailwind CSS with sleek glassmorphism, responsive dark/light modes, and custom design tokens
+- **Icons & Motion**: Lucide React + custom CSS micro-animations
+- **Modals**: React Portals (`createPortal`) mounted to `document.body` for flawless layering and stacking context isolation
+- **State & Routing**: React Router v6 + Context API (Auth, Theme, Audit logging)
+- **Internationalization**: `i18next` with English, Hindi, and Marathi translations
 
 ### Backend
-- **Runtime**: Node.js + Express.js + TypeScript
-- **Database**: SQLite with Prisma ORM (`dev.db`)
-- **Text Parsers**: `pdf-parse` (with page tracking) and `mammoth` (DOCX)
+- **Runtime**: Node.js + Express.js with TypeScript
+- **Database**: SQLite (`dev.db`) with custom optimized SQL schemas for documents, categories, users, tags, audit logs, and feedback
+- **AI Engine**: Google Gemini API integration with automatic fallback to mock AI responses for offline resilience
+- **Document Extractors**: `pdf-parse` (with page tracking) and `mammoth` (DOCX parsing)
+- **Testing**: Vitest automated test suite (65 passing unit & integration tests)
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-digital-library/
+service-learning/
 ├── backend/
-│   ├── prisma/
-│   │   └── schema.prisma      # SQLite Database Schema
 │   ├── src/
-│   │   ├── controllers/        # Document, Search, Settings handlers
-│   │   ├── database/           # Prisma client instance
-│   │   ├── middleware/         # Multer file upload & error handlers
-│   │   ├── routes/             # REST API endpoint routes
-│   │   ├── services/           # Extraction & document storage services
-│   │   ├── types/              # TypeScript interfaces
-│   │   └── server.ts           # Express App Entrypoint
-│   └── tests/                  # Vitest automated test suite
+│   │   ├── controllers/      # Document, Category, User, Settings handlers
+│   │   ├── database/         # SQLite connection, migrations & seeding (db.ts)
+│   │   ├── middleware/       # Multer upload & error handling
+│   │   ├── routes/           # REST endpoints (/api/documents, /api/categories, /api/users, etc.)
+│   │   ├── services/         # Text extraction, Gemini AI provider, document storage
+│   │   └── server.ts         # Express server entry point
+│   ├── tests/                # Automated Vitest test suite (65 tests)
+│   └── .env                  # Backend configuration (PORT, GEMINI_API_KEY)
 ├── frontend/
 │   ├── src/
-│   │   ├── components/         # DocumentCard, DocumentViewerModal, Sidebar, Toast, etc.
-│   │   ├── layouts/            # MainLayout shell
-│   │   ├── pages/              # DashboardPage, UploadPage, SettingsPage
-│   │   ├── services/           # Axios API client
-│   │   └── types/              # Frontend interfaces
-│   ├── vite.config.ts          # Vite proxy configuration
-│   └── tailwind.config.js      # Tailwind CSS configuration
-├── uploads/                    # Local safe document file storage
-├── README.md                   # Technical documentation
-└── ABOUT-THIS.md               # Group presentation & project overview
+│   │   ├── components/       # MaterialCard, MaterialModal, DeleteModal, AdminNavTabs, etc.
+│   │   ├── context/          # AuthContext, ThemeContext, AuditContext
+│   │   ├── layouts/          # ViewerLayout, AdminLayout with sticky sidebars & topbars
+│   │   ├── pages/
+│   │   │   ├── admin/        # AdminDashboard, ManageMaterials, ManageCategories, ManageUsers, UploadMaterial
+│   │   │   └── viewer/       # ViewerDashboard, SmartLearningPath, Library, Categories, Recent
+│   │   ├── services/         # Axios API client with type definitions
+│   │   └── i18n/             # Multilingual localization bundles
+│   └── vite.config.ts        # Vite configuration & dev proxy
+├── uploads/                  # Secure local file storage directory
+└── README.md                 # Complete system documentation
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Getting Started
 
 ### 1. Prerequisites
-- Node.js (v18.x or higher)
-- npm (v9.x or higher)
-
-### 2. Environment Setup
-
-Create `.env` in `backend/` or set variables:
-```env
-PORT=5000
-DATABASE_URL="file:./prisma/dev.db"
-```
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- *(Optional)* Google Gemini API key for live AI generation. (The platform includes built-in mock fallback if no API key is provided).
 
 ---
 
-### 3. Backend Setup & Run
+### 2. Backend Setup
 
 ```bash
 cd backend
 
-# 1. Install dependencies
+# Install dependencies
 npm install
 
-# 2. Push SQLite database schema
-npx prisma db push
+# (Optional) Add your Gemini API key in backend/.env:
+# GEMINI_API_KEY=your_key_here
+# PORT=5000
 
-# 3. Start backend dev server
+# Start backend in dev watch mode
 npm run dev
 ```
-Backend will start on: `http://localhost:5000`
+
+The backend server will start at: `http://localhost:5000`  
+*(SQLite database `dev.db` is auto-initialized and seeded with default categories and users).*
 
 ---
 
-### 4. Frontend Setup & Run
+### 3. Frontend Setup
 
-In a new terminal window:
+In a second terminal window:
 
 ```bash
 cd frontend
 
-# 1. Install dependencies
+# Install dependencies
 npm install
 
-# 2. Start frontend dev server
+# Start Vite dev server
 npm run dev
 ```
-Frontend will open on: `http://localhost:3000`
+
+The client web app will open at: `http://localhost:3000`
 
 ---
 
-## ⚙️ How Document Processing Works
+## 🧪 Testing & Validation
 
-1. **Upload & Validation**: File type (.pdf, .docx, .txt, .md) and file size (<50MB) are verified. The original file is saved in `/uploads`.
-2. **Text Extraction**:
-   - `pdf-parse` extracts full text and maps page boundaries.
-   - `mammoth` parses raw text from Word `.docx`.
-   - TXT/Markdown files are read directly via UTF-8 buffer.
-3. **Indexing & Storage**: Extracted text, metadata, and tags are indexed in SQLite via Prisma ORM.
-4. **Inspection & Management**: Users can inspect full text, view PDF previews, edit tags, search, and manage files through the React interface.
-
----
-
-## 🧪 Running Automated Tests
-
-Run backend unit & integration tests:
+Run the automated backend test suite:
 
 ```bash
 cd backend
 npm test
 ```
 
-Verifies:
-- Text extraction logic for PDF, DOCX, TXT.
-- Document storage and metadata retrieval.
-- Complete document upload and deletion lifecycle.
+All **65 tests** verify:
+- Accurate full-text extraction from `.pdf`, `.docx`, `.txt`, and `.md` files
+- File corruption detection and edge-case validation
+- Category and user CRUD persistence in SQLite
+- Multilingual AI summarizer and quiz generator integration
 
 ---
 
-## 🔒 Security & Best Practices
+## 👥 Default Demo Accounts
 
-- Filenames are sanitized and assigned timestamp UUID prefixes to prevent path traversal.
-- Uploaded files are restricted to non-executable document extensions.
-- Storage directory is safely contained within local server environment.
+| Name | Role | Department | Default Permissions |
+| :--- | :--- | :--- | :--- |
+| **Dr. Rajesh Sharma** | `ADMIN` (Faculty) | Computer Science | Full document upload, delete, category & user management |
+| **Om** | `VIEWER` (Student) | Information Tech | Search, view, download, AI summaries, quizzes, feedback |
+
+*(You can freely switch between Faculty and Student modes using the header navigation or the Manage Users panel).*
+
+---
+
+## 🛡️ License & Contributing
+
+Developed for educational service learning and digital empowerment. Contributions, bug reports, and suggestions are welcome via issues or pull requests.
