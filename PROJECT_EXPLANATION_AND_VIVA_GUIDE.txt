@@ -1,0 +1,624 @@
+================================================================================
+   KNOWLEDGEHUB — AI-POWERED DIGITAL LEARNING & DOCUMENT MANAGEMENT PLATFORM
+              COMPREHENSIVE PROJECT GUIDE & INVIGILATOR VIVA HANDBOOK
+================================================================================
+
+Target Audience: Project Authors, Students, Evaluators, and Viva Examiners
+Purpose: Complete technical and functional explanation of the system from basic 
+         principles to deep architectural details, with prepared Q&A for exams.
+Project Repository: https://github.com/lokeshdeshmukh0101/ServiceLearning
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+ 1. 30-Second Elevator Pitch (What to say when asked "Explain your project")
+ 2. Problem Statement & Unique Selling Proposition (USP)
+ 3. High-Level Architecture & Technology Stack
+ 4. End-to-End System Working (Step-by-Step Data Flow)
+ 5. Core Modules & Feature Breakdown
+ 6. Database Schema & Data Models (SQLite dev.db)
+ 7. Deep-Dive Technical Mechanisms & Innovations
+ 8. Step-by-Step Live Demonstration Script for Examiners
+ 9. Top 20 Invigilator / Viva Questions with Exact Answers
+10. Quick Reference Cheat Sheet (Ports, Tech, Credentials)
+
+================================================================================
+1. 30-SECOND ELEVATOR PITCH
+================================================================================
+"KnowledgeHub is an intelligent digital learning platform that bridges the gap 
+between static academic documents and active student learning. 
+
+Traditional platforms like Google Drive or college portals act merely as file 
+dump yards where students struggle with passive reading and language barriers. 
+
+KnowledgeHub transforms static academic documents—such as PDFs, Word files, and 
+lecture notes—into interactive, multilingual learning experiences. Our core USP 
+is: 'Upload once. Learn in your language. Practice at your level.'
+
+When a faculty member uploads a document, our automated pipeline extracts the 
+full text, indexes it in SQLite, and enables AI-powered conceptual summaries in 
+English, Hindi, and Marathi with voice read-aloud. Furthermore, it automatically 
+generates targeted quizzes from the document content so students can test their 
+comprehension immediately. 
+
+It also includes real-time academic domain management, role-based access control, 
+and full-text keyword search."
+
+================================================================================
+2. PROBLEM STATEMENT & UNIQUE SELLING PROPOSITION (USP)
+================================================================================
+
+2.1 THE REAL-WORLD PROBLEM:
+In universities and colleges today:
+1. Static Storage: Documents are stored in disjointed folders or WhatsApp groups. 
+   Students cannot search inside the content of documents easily.
+2. The Language Barrier: Many students understand concepts much faster in their 
+   regional or native languages (like Hindi or Marathi), but high-level reference 
+   materials are almost exclusively in English.
+3. Passive Reading: Reading 50-page PDFs leads to cognitive fatigue. Students 
+   have no way to test whether they actually understood what they just read.
+4. Administrative Overhead: Faculty struggle to manage categories, organize 
+   syllabus notes, and monitor student usage metrics.
+
+2.2 OUR SOLUTION & USP:
+Core USP: "Upload once. Learn in your language. Practice at your level."
+- Upload once: Faculty upload a single PDF, DOCX, or TXT file.
+- Learn in your language: The AI engine simplifies the document and offers 
+  instant translations into English, Hindi, and Marathi, supported by native 
+  browser Text-to-Speech (TTS).
+- Practice at your level: The system dynamically constructs interactive quizzes 
+  with immediate scoring and rationales derived strictly from the uploaded text.
+- Full real-time control: Complete category and user administration with live 
+  synchronization across all student views.
+
+================================================================================
+3. HIGH-LEVEL ARCHITECTURE & TECHNOLOGY STACK
+================================================================================
+
+3.1 ARCHITECTURE DIAGRAM (ASCII):
+
+  +-------------------------------------------------------------------------+
+  |                             CLIENT LAYER                                |
+  |   React 18 + TypeScript + Vite + Tailwind CSS + Lucide Icons + i18next  |
+  |                                                                         |
+  |  [Student Portal]                     [Faculty Admin Portal]            |
+  |  - Dashboard & Category Cards         - Dashboard (Live Real Metrics)   |
+  |  - Full Library & Search Filter       - Material Upload (Drag & Drop)   |
+  |  - Document Inspector Modal           - Manage Categories (CRUD Sync)   |
+  |  - AI Summary (EN/HI/MR + Audio)      - Manage Users & Roles (RBAC)     |
+  |  - Interactive Quiz Modal             - Real-time System Diagnostics    |
+  +-------------------------------------------------------------------------+
+                                    |
+                                    | HTTP / REST API (Axios + JSON + Headers)
+                                    v
+  +-------------------------------------------------------------------------+
+  |                             SERVER LAYER                                |
+  |              Node.js + Express.js + TypeScript (Port 5000)             |
+  |                                                                         |
+  |  [Middleware]: Multer (File Uploads), CORS, Dev Auth Headers, Errors   |
+  |  [Routes]:     /api/documents, /api/categories, /api/users,             |
+  |                /api/settings, /api/feedback, /api/audit-logs            |
+  |  [Services]:                                                            |
+  |    * documentService.ts -> File parsing, text extraction, search logic  |
+  |    * aiProvider.ts      -> Gemini API connector + Mock Fallback engine  |
+  +-------------------------------------------------------------------------+
+                 |                                        |
+                 v                                        v
+  +-----------------------------+          +--------------------------------+
+  |         DATA LAYER          |          |        EXTERNAL ENGINES        |
+  |    SQLite (dev.db file)     |          |  - Google Gemini 1.5 Flash API |
+  |  - documents (Metadata+Text)|          |    (Structured JSON Prompts)   |
+  |  - categories (Subject areas|          |  - Web Speech Synthesis API    |
+  |  - users (Roles & Quotas)   |          |    (Client-side native TTS)    |
+  |  - tags & document_tags     |          |  - Document Extractors         |
+  |  - feedback & audit_logs    |          |    (pdf-parse & mammoth)       |
+  +-----------------------------+          +--------------------------------+
+
+3.2 DETAILED TECH STACK BREAKDOWN:
+
+A. FRONTEND:
+- React 18: Component-based UI with hooks (`useState`, `useEffect`, `useCallback`).
+- TypeScript: End-to-end type safety preventing runtime null/undefined bugs.
+- Vite: Next-generation build tool and lightning-fast HMR dev server.
+- Tailwind CSS: Modern utility-first styling with sleek dark-mode glassmorphism.
+- React Portals (`createPortal`): Isolates modals into `document.body` to eliminate 
+  CSS stacking context traps.
+- Lucide React: Crisp, modern UI icons.
+- i18next: Internationalization engine for localized English, Hindi, and Marathi text.
+
+B. BACKEND:
+- Node.js & Express.js: Fast, asynchronous REST API event loop.
+- Multer: Multipart form-data handling for safe local document uploads.
+- Text Extraction Parsers:
+  * `pdf-parse`: Extracts text from PDF files and tracks page count.
+  * `mammoth`: Parses pure semantic text from Microsoft Word (.docx) files.
+  * Native Node.js `fs` buffers: Reads UTF-8 text from .txt and .md files.
+- Google Gemini API: Generative AI for document summarization and quiz generation.
+
+C. DATABASE:
+- SQLite (`dev.db`): Zero-configuration, file-based relational database. 
+  Fast, embedded, fully persistent, and portable across platforms without 
+  requiring an external database daemon like MongoDB or MySQL.
+
+================================================================================
+4. END-TO-END SYSTEM WORKING (STEP-BY-STEP DATA FLOW)
+================================================================================
+
+4.1 WORKFLOW 1: DOCUMENT UPLOAD & TEXT EXTRACTION PIPELINE
+1. Admin opens `/admin/materials/upload`.
+2. Admin drops a PDF, DOCX, TXT, or MD file (max 50MB) and selects an academic 
+   category (dynamically populated from SQLite).
+3. The browser sends a `multipart/form-data` POST request to `/api/documents/upload`.
+4. Multer intercepts the stream:
+   - Sanitizes the filename with a timestamp UUID prefix to prevent collisions 
+     and path traversal attacks.
+   - Writes the physical file into the safe `/uploads` directory on disk.
+5. `documentService.ts` examines the file extension:
+   - If `.pdf`: calls `pdf-parse`, parses binary streams, and extracts text.
+   - If `.docx`: calls `mammoth.extractRawText`, stripping XML markup.
+   - If `.txt` / `.md`: reads UTF-8 buffer directly.
+6. The service calculates file size, verifies content integrity, and inserts a 
+   new row into the `documents` table in SQLite.
+7. Any associated tags are linked in `document_tags`.
+8. The server responds with HTTP 201 Created and the indexed document object.
+
+4.2 WORKFLOW 2: MULTILINGUAL AI SUMMARIZATION & TEXT-TO-SPEECH
+1. Student opens a document in the Document Inspector (`MaterialModal`).
+2. Student clicks "Generate AI Summary".
+3. Frontend sends POST `/api/documents/:id/ai/summary` with target language 
+   (`en`, `hi`, or `mr`).
+4. Backend retrieves the document's extracted text from SQLite.
+5. `aiProvider.ts` constructs a strict prompt sent to Google Gemini 1.5:
+   - Prompts the model to act as an expert educator.
+   - Requests a simplified 3-part breakdown: (1) Key Concept, (2) Core Insights, 
+     and (3) Takeaway Summary in the chosen language.
+   - If offline or Gemini API key is unavailable, a resilient rule-based mock 
+     engine synthesizes the summary so the student never experiences a crash.
+6. The JSON summary is returned and displayed in an interactive tab.
+7. The student can click the "Listen" button:
+   - The browser's native `window.speechSynthesis` API activates.
+   - It matches language tags (`en-US`, `hi-IN`, `mr-IN`) to pronounce the 
+     summary aloud, aiding auditory and regional learners.
+
+4.3 WORKFLOW 3: DYNAMIC QUIZ GENERATION & COMPREHENSION PRACTICE
+1. Student clicks "Generate Quiz" on the document or enters Smart Learning Path.
+2. Frontend sends POST `/api/documents/:id/ai/quiz` with parameters:
+   - Question count (3 to 10 questions)
+   - Difficulty level (`beginner`, `intermediate`, `advanced`)
+   - Language (`en`, `hi`, `mr`)
+3. Gemini analyzes the document text and generates multiple-choice questions 
+   (MCQs) with 4 options, the correct answer index, and an educational explanation.
+4. The student answers the questions interactively in the UI.
+5. The UI calculates real-time scores, shows correct vs incorrect answers, and 
+   provides feedback rationales for each question.
+
+4.4 WORKFLOW 4: REAL-TIME CATEGORY & DOMAIN MANAGEMENT (SYNCHRONIZATION)
+1. Faculty Admin navigates to `/admin/categories`.
+2. Admin can:
+   - Add Category: Enters name, description, and icon -> saved to SQLite.
+   - Edit Category: Updates name/description -> saved to SQLite.
+   - Delete Category: Triggers dedicated in-app confirmation modal -> removes from 
+     SQLite and unlinks associated documents.
+3. Because all endpoints (`/api/categories`) query SQLite live:
+   - Admin Dashboard Total Categories metric updates immediately.
+   - Student Dashboard "Browse by Category" grid updates immediately.
+   - Upload Material dropdown removes deleted categories immediately.
+   - Student Library filters only show active categories.
+   - Zero hardcoded fallback lists remain; changes are 100% dynamic.
+
+4.5 WORKFLOW 5: ROLE-BASED ACCESS CONTROL (RBAC)
+1. The app defines two primary roles:
+   - `ADMIN` (Faculty Administrator): Unrestricted access to upload, delete, 
+     edit metadata, manage categories, and alter user roles.
+   - `VIEWER` (Student): Read access to search, inspect text, download files, 
+     generate AI summaries, take quizzes, and submit feedback.
+2. In the top navigation header, users can switch roles instantly to test both 
+   student and faculty perspectives.
+3. In `/admin/users`, admins can view all registered users and toggle roles via 
+   an interactive dropdown backed by SQLite `PUT /api/users/:id`.
+
+================================================================================
+5. CORE MODULES & FEATURE BREAKDOWN
+================================================================================
+
+1. FACULTY ADMIN DASHBOARD (`/admin/dashboard`):
+   - Real-time Metric Cards:
+     * Total Materials (indexed count from SQLite)
+     * Total Categories (live count linking to category management)
+     * Total Users (actual registered count from SQLite, e.g. 6, not fake 124)
+     * Storage Used (total bytes on disk converted to KB/MB)
+   - Quick Navigation Tabs: Overview, Learning Materials, Manage Categories, 
+     and Manage Users & Roles.
+   - Recently uploaded materials table with direct view, edit, and delete actions.
+
+2. LEARNING MATERIALS MANAGER (`/admin/materials`):
+   - Table and grid views of all uploaded academic documents.
+   - Multi-criteria filtering by category, file format, and search keywords.
+   - Single-click document deletion with safe confirmation modal.
+
+3. ACADEMIC CATEGORY MANAGER (`/admin/categories`):
+   - Live category cards with linked document counters.
+   - Search filter to find categories quickly.
+   - In-app Add and Edit modals.
+   - In-app Delete Confirmation modal replacing unreliable browser alerts.
+
+4. USER & ROLE MANAGER (`/admin/users`):
+   - Full list of faculty and students.
+   - Real-time Role Switcher (`Student Viewer` <-> `Faculty Admin`).
+   - Quota usage trackers (MB allocated vs MB used).
+
+5. STUDENT VIEWER DASHBOARD (`/library/dashboard`):
+   - Hero banner with quick topic search.
+   - Live "Browse by Category" grid dynamically synchronized with SQLite.
+   - "Popular" search tag chips reflecting active categories.
+   - Signature USP card promoting the "Smart Learning Path".
+   - Recently added materials feed.
+
+6. LEARNING LIBRARY & SEARCH ENGINE (`/library`):
+   - Instant search across document text, titles, and tags.
+   - Live query keyword highlighter.
+   - Category and file format filters.
+   - Grid view (cards) vs List view (table) switcher.
+
+7. INTERACTIVE DOCUMENT INSPECTOR (`MaterialModal.tsx`):
+   - Tab 1: Extracted Full Text with occurrence counter for search terms.
+   - Tab 2: Multilingual AI Summary (English, Hindi, Marathi) + Text-to-Speech.
+   - Tab 3: Interactive Quiz Mode with score tracker.
+   - Tab 4: PDF View / Download Frame.
+
+8. SMART LEARNING PATH (`/library/learn/:id`):
+   - Guided study workflow taking students through 4 progressive stages:
+     Stage 1: Document Overview & Audio Briefing
+     Stage 2: Key Concepts & Bilingual Simplified Breakdown
+     Stage 3: Interactive Knowledge Check Quiz
+     Stage 4: Achievement Badge & Completion Certificate
+
+9. REPORT AN ISSUE & FEEDBACK SYSTEM:
+   - Accessible from the sidebar and document inspector.
+   - Categorized reporting: AI Summary Issue, Translation Issue, Broken File, etc.
+   - Rating stars and optional screenshot attachment.
+   - Persisted to SQLite `feedback` table.
+
+================================================================================
+6. DATABASE SCHEMA & DATA MODELS (SQLITE DEV.DB)
+================================================================================
+
+KnowledgeHub uses SQLite directly with structured tables in `dev.db`:
+
+TABLE 1: `documents`
+  - `id` (TEXT PRIMARY KEY): Unique UUID identifier.
+  - `filename` (TEXT NOT NULL): Sanitized original file name.
+  - `fileType` (TEXT NOT NULL): Extension (pdf, docx, txt, md).
+  - `fileSize` (INTEGER NOT NULL): File size in bytes.
+  - `storedPath` (TEXT NOT NULL): Relative path on server disk (/uploads/...).
+  - `extractedText` (TEXT): Full parsed plain text content.
+  - `description` (TEXT): User-provided summary of course notes.
+  - `status` (TEXT DEFAULT 'Indexed'): Document lifecycle status.
+  - `createdAt` (DATETIME DEFAULT CURRENT_TIMESTAMP)
+  - `updatedAt` (DATETIME DEFAULT CURRENT_TIMESTAMP)
+
+TABLE 2: `categories`
+  - `id` (TEXT PRIMARY KEY): Unique category ID (e.g., cat-1, or UUID).
+  - `name` (TEXT UNIQUE NOT NULL): Academic domain title (e.g., Programming).
+  - `description` (TEXT): Domain coverage and syllabus details.
+  - `icon` (TEXT): Lucide icon identifier.
+  - `createdAt` (DATETIME DEFAULT CURRENT_TIMESTAMP)
+
+TABLE 3: `users`
+  - `id` (TEXT PRIMARY KEY): Unique user ID (e.g., u-1, u-2).
+  - `name` (TEXT NOT NULL): Full name of student or faculty.
+  - `email` (TEXT UNIQUE NOT NULL): Institutional email.
+  - `role` (TEXT NOT NULL): 'ADMIN' (Faculty) or 'VIEWER' (Student).
+  - `status` (TEXT DEFAULT 'Active'): Account state.
+  - `department` (TEXT): Academic department (e.g., Computer Science).
+  - `quotaMB` (INTEGER DEFAULT 500): Allocated upload quota.
+  - `usedMB` (REAL DEFAULT 0): Current consumption.
+  - `createdAt` (DATETIME DEFAULT CURRENT_TIMESTAMP)
+
+TABLE 4: `tags` & `document_tags`
+  - `tags`: Stores distinct tag names (`id`, `name UNIQUE`).
+  - `document_tags`: Many-to-many junction table (`documentId`, `tagId`).
+
+TABLE 5: `feedback`
+  - `id` (TEXT PRIMARY KEY)
+  - `title` (TEXT NOT NULL)
+  - `description` (TEXT NOT NULL)
+  - `category` (TEXT NOT NULL)
+  - `rating` (INTEGER DEFAULT 5)
+  - `relatedDocumentId` (TEXT NULL)
+  - `status` (TEXT DEFAULT 'Pending')
+  - `createdAt` (DATETIME DEFAULT CURRENT_TIMESTAMP)
+
+TABLE 6: `audit_logs`
+  - Tracks every action: Document upload, deletion, user role change, and login.
+
+================================================================================
+7. DEEP-DIVE TECHNICAL MECHANISMS & INNOVATIONS
+================================================================================
+
+7.1 HOW TEXT EXTRACTION WORKS WITHOUT DATA LOSS:
+- PDF: Binary PDF structures contain compressed stream objects. We use `pdf-parse` 
+  to decompress flate streams, parse fonts, extract unicode character maps, and 
+  stitch words into logical lines with page markers.
+- Word (.docx): DOCX files are zipped archives containing `word/document.xml`. 
+  `mammoth` inspects the internal XML trees, extracts paragraph and heading 
+  nodes, and ignores proprietary styling bloat to yield clean semantic text.
+- Plain Text & Markdown: Ingested as raw byte buffers and converted via UTF-8.
+
+7.2 RESILIENT AI FALLBACK ENGINE:
+- A major flaw in student AI projects is that if the AI API fails or runs out 
+  of credits, the whole project crashes in front of the examiner.
+- In KnowledgeHub, `aiProvider.ts` wraps Google Gemini in an intelligent fallback 
+  layer. If `process.env.GEMINI_API_KEY` is missing, invalid, rate-limited, or 
+  offline, our custom internal extraction heuristic generates structured summaries 
+  and valid MCQs directly from document paragraphs. The application NEVER crashes!
+
+7.3 NATIVE WEB SPEECH SYNTHESIS (NO EXPENSIVE THIRD-PARTY TTS):
+- Rather than relying on cloud voice APIs (which incur fees and latency), we 
+  leverage the browser's native `window.speechSynthesis`.
+- By setting `utterance.lang` to `hi-IN` or `mr-IN`, the client device's native 
+  Indian accent voices pronounce Hindi and Marathi explanations accurately.
+
+7.4 CSS STACKING CONTEXT ISOLATION (REACT PORTALS):
+- Problem: Modals declared inside sticky sidebars (`position: relative; z-index: 20`) 
+  get trapped in the sidebar's CSS stacking context. Main content tables with 
+  white backgrounds can render on top of the modal, slicing it in half.
+- Solution: We refactored all modals (`FeedbackModal`, `MaterialModal`, `DeleteModal`) 
+  to use React's `createPortal(jsx, document.body)`. This unhooks the modal from 
+  the sidebar DOM hierarchy, rendering it directly at `<body>` level with `z-[9999]`.
+
+7.5 SECURITY MEASURES:
+- File Upload Security:
+  * Extension validation: Whitelist limited to `.pdf`, `.docx`, `.txt`, `.md`.
+  * Size limiting: Multer limits files to 50MB.
+  * Path Traversal Prevention: Filenames are stripped of `../` and hashed with 
+    timestamp prefixes.
+- SQL Injection Prevention:
+  * All SQLite database queries use parameterized SQL (`?` placeholders).
+
+================================================================================
+8. STEP-BY-STEP LIVE DEMONSTRATION SCRIPT FOR EXAMINERS
+================================================================================
+
+Follow this exact sequence when demonstrating to an invigilator or evaluator:
+
+STEP 1: SHOW THE FACULTY ADMIN DASHBOARD
+- URL: http://localhost:3000/admin/dashboard
+- Point out: "Sir/Madam, this is the Faculty Admin Overview. All metrics you see 
+  here—Total Materials, Total Categories, Total Users, and Storage Used—are live 
+  and queried directly from our SQLite database. There are no hardcoded fake numbers."
+
+STEP 2: UPLOAD A NEW STUDY MATERIAL
+- Click the "Upload New Material" button or navigate to `/admin/materials/upload`.
+- Point out: "Notice the Academic Category dropdown. It only lists categories currently 
+  active in our database. It is not a static list."
+- Drag and drop a sample PDF or DOCX file (e.g., Lecture notes).
+- Add description and tags, then click "Upload Learning Material".
+- Point out: "The backend automatically intercepted the file, parsed the full text 
+  using our extraction pipeline, and indexed it into SQLite."
+
+STEP 3: SHOW REAL-TIME CATEGORY MANAGEMENT
+- Click "Manage Categories" in the top navigation tabs (`/admin/categories`).
+- Click "Add Category". Add a new category: "Cybersecurity & Cloud".
+- Navigate back to "Overview" (`/admin/dashboard`):
+  Show that Total Categories incremented live!
+- Go back to `/admin/categories` and delete the test category using the trash icon.
+- Show the in-app confirmation modal (explain that this replaces unreliable browser popups).
+- Confirm deletion: Show that the category is removed everywhere.
+
+STEP 4: DEMONSTRATE ROLE-BASED ACCESS CONTROL (RBAC)
+- Go to `/admin/users`.
+- Show the list of users.
+- Toggle a user's role from "Student Viewer" to "Faculty Admin" via the dropdown.
+- Explain: "The role persists immediately in SQLite."
+- Click the role switch button in the header to switch to Student Viewer mode.
+
+STEP 5: DEMONSTRATE THE STUDENT LEARNING EXPERIENCE & USP
+- URL: http://localhost:3000/library/dashboard
+- Point out: "Now we are in Student Viewer mode. Notice how the 'Browse by Category' 
+  grid immediately matches the exact categories left in the database."
+- Click "Learning Library" (`/library`).
+- Type a keyword into search: Show that matching text inside documents is 
+  highlighted live in yellow.
+
+STEP 6: DEMONSTRATE AI SUMMARY & MULTILINGUAL TTS
+- Click "View" on any document to open the Document Inspector.
+- Show Tab 1: Full extracted text.
+- Click Tab 2: "AI Summary".
+- Click "Hindi (हिंदी)" or "Marathi (मराठी)".
+- Show the translated conceptual summary.
+- Click the "Listen" (speaker icon) button to play the audio read-aloud.
+- Explain: "This addresses our core USP: helping students understand complex 
+  academic material in their native language."
+
+STEP 7: DEMONSTRATE THE SMART QUIZ GENERATOR
+- Click Tab 3: "Knowledge Quiz" or navigate to the "Smart Learning Path".
+- Show that MCQs were generated directly from the document's content.
+- Answer questions live, submit, and display the score and question rationales.
+
+STEP 8: DEMONSTRATE THE BUG FIX & CLEAN UI
+- Click "Report Issue / Feedback" in the sidebar.
+- Point out: "Notice how the modal renders perfectly over the entire page with 
+  a frosted glass backdrop, using React Portals (`createPortal`). It never gets 
+  sliced or hidden behind table headers."
+
+================================================================================
+9. TOP 20 INVIGILATOR / VIVA QUESTIONS WITH EXACT ANSWERS
+================================================================================
+
+Q1: What is the main objective and USP of this project?
+Answer: "The objective is to turn static academic documents into interactive, 
+multilingual learning experiences. Our USP is: 'Upload once. Learn in your 
+language. Practice at your level.' We provide automated text extraction, AI 
+conceptual summaries in English, Hindi, and Marathi with voice read-aloud, and 
+dynamic quiz generation from course documents."
+
+Q2: Why did you choose React + Vite instead of plain HTML/JS or Next.js?
+Answer: "React gives us a reactive component hierarchy for rich modals, live search, 
+and state management. Vite provides ultra-fast ES module bundling and hot module 
+replacement. We chose client-side React over Next.js because this application is 
+intended as an intranet learning platform for educational institutes where 
+instant local responsiveness and zero-server-rendering overhead is preferred."
+
+Q3: How do you extract text from binary files like PDF and Word DOCX?
+Answer: "We built a specialized document extraction service in Node.js. For PDFs, 
+we use `pdf-parse`, which extracts text stream objects and maps page numbers. For 
+Word documents, we use `mammoth`, which parses the XML structure of DOCX files 
+into raw text while stripping styling overhead. Plain text and Markdown are read 
+directly via UTF-8 file buffers."
+
+Q4: What happens if a PDF is an image scan rather than a text PDF?
+Answer: "`pdf-parse` extracts text streams. If a PDF is a pure scanned image without 
+embedded font glyphs, the extracted text will be empty or minimal. In our system, 
+we detect this and mark the document status as 'Needs OCR' or fallback to filename 
+and metadata indexing. For full production deployment, an OCR engine like 
+Tesseract.js can be plugged in."
+
+Q5: Which AI model are you using, and how is it integrated?
+Answer: "We integrate with Google Gemini 1.5 Flash via Google's generative AI SDK. 
+We send carefully engineered prompts containing the document's extracted text and 
+instruct the model to return structured JSON containing key takeaways, simplified 
+explanations, and MCQs in English, Hindi, or Marathi."
+
+Q6: What happens if the Gemini API key is missing or the internet disconnects?
+Answer: "We designed a robust offline fallback engine in `aiProvider.ts`. If the 
+Gemini API key is absent, rate-limited, or offline, our heuristic rules-based 
+summarizer parses key sentences and generates valid comprehension questions 
+directly from the document text. The app never crashes or hangs."
+
+Q7: How does the text-to-speech (TTS) feature work? Is it an expensive API?
+Answer: "No, it is completely free and client-side. We use the browser's native 
+`window.speechSynthesis` Web API. We detect the user's selected language (`en-US`, 
+`hi-IN`, or `mr-IN`) and bind the synthesis utterance to the system's native voice 
+engine."
+
+Q8: How does the quiz generation ensure questions are relevant to the document?
+Answer: "The prompt sent to the AI includes the exact text of the uploaded 
+document as context and instructs the model: 'Generate questions exclusively 
+based on the provided text. Provide 4 options, the 0-indexed correct answer, 
+and an explanation.' This prevents AI hallucinations."
+
+Q9: Why did you use SQLite instead of MongoDB or PostgreSQL?
+Answer: "SQLite was chosen deliberately for three reasons:
+1. Self-contained & Portable: The entire database resides in a single file (`dev.db`), 
+   making it easy to deploy, backup, and run on any college laboratory machine 
+   without installing database servers.
+2. Relational Integrity: Foreign keys and relational integrity connect documents, 
+   categories, tags, and users cleanly.
+3. Fast & Lightweight: For institutional digital libraries with thousands of 
+   documents, SQLite offers microsecond query speeds with zero configuration."
+
+Q10: How do you prevent SQL Injection attacks?
+Answer: "We never concatenate user inputs directly into SQL strings. All queries 
+in our database layer use parameterized queries with `?` placeholders (prepared 
+statements), ensuring input values are treated strictly as data, not executable SQL."
+
+Q11: How do you prevent malicious file uploads (e.g., someone uploading a .exe)?
+Answer: "We implement multiple security layers:
+1. Multer file filter enforces an extension whitelist (.pdf, .docx, .txt, .md).
+2. MIME-type validation rejects executable binaries.
+3. Upload size limit is strictly capped at 50MB.
+4. Uploaded filenames are sanitized and prepended with random timestamp UUIDs to 
+   prevent path traversal attacks (e.g., `../../etc/passwd`)."
+
+Q12: How are user roles and permissions managed?
+Answer: "We implement Role-Based Access Control (RBAC). The system defines two 
+roles: `ADMIN` (Faculty) and `VIEWER` (Student). The role determines navigation 
+routes and API access. In the database, the `users` table persists roles and storage 
+quotas. Admins can toggle any user's role in the Manage Users panel."
+
+Q13: How do categories stay synchronized across Admin and Student views?
+Answer: "Initially, category lists were statically defined in React state, which 
+caused deleted categories to persist on reload. We refactored the entire system 
+so that all category data lives in the SQLite `categories` table. Every view 
+(Admin Dashboard, Student Dashboard, Upload Form, and Library Filters) queries 
+`GET /api/categories` dynamically. When an admin deletes a category, it is 
+removed from SQLite and immediately disappears from all views."
+
+Q14: Explain the bug where the 'Report an Issue' modal was cut in half, and how you fixed it.
+Answer: "That was a classic CSS Stacking Context issue. The `FeedbackModal` was 
+rendered inside `ViewerSidebar`, which had `position: relative; z-index: 20` inside 
+a `sticky` container. In CSS, when a parent creates a stacking context, any 
+child with `position: fixed` is trapped inside that parent's layer. The main page 
+table had its own stacking context and rendered on top of the modal. 
+We fixed this by wrapping the modal in React's `createPortal(jsx, document.body)` 
+with `z-[9999]`. This moves the modal DOM node directly under `<body>`, completely 
+escaping the sidebar's stacking context."
+
+Q15: What automated tests have you written for this project?
+Answer: "We implemented an automated test suite using Vitest in the backend with 
+65 passing tests across 3 test suites:
+1. `tests/aiProvider.test.ts`: Verifies Gemini integration, prompt structure, and 
+   fallback logic.
+2. `tests/backend.test.ts`: Verifies text extraction from PDF, DOCX, and TXT files, 
+   handles corrupt files, and tests document CRUD lifecycles.
+3. `tests/learningPath.test.ts`: Verifies dynamic quiz generation and validation."
+
+Q16: How do you calculate storage metrics on the Admin Dashboard?
+Answer: "In `documentService.ts`, we execute a query `SELECT fileType, fileSize FROM 
+documents`. We sum the `fileSize` bytes across all records and compute counts per 
+file type. The total bytes are formatted into B, KB, or MB on the frontend."
+
+Q17: What is the difference between a 'Category' and a 'Tag' in your app?
+Answer: "A Category represents a high-level academic domain or subject curriculum 
+(e.g., 'Artificial Intelligence', 'Data Structures'). Each document belongs to 
+one primary category. Tags are granular, informal keywords (e.g., 'unit-1', 
+'midterm-prep', 'formulas') that allow multi-faceted filtering across categories."
+
+Q18: What is the purpose of the Audit Log table?
+Answer: "Academic institutions require accountability. The `audit_logs` table 
+records every critical action: who uploaded a file, who deleted a document, who 
+changed a user's role, and when. This ensures complete transparency for college 
+administrators."
+
+Q19: How can this system scale in a large university?
+Answer: "The architecture is modular. For large-scale university deployment:
+1. The backend Express app can be containerized using Docker and scaled horizontally.
+2. Local file storage (`/uploads`) can be swapped for an S3-compatible object store 
+   (like MinIO or AWS S3).
+3. SQLite can be migrated to PostgreSQL by simply switching the database driver 
+   without altering any frontend code."
+
+Q20: What are the future enhancements planned for this project?
+Answer: "Future enhancements include:
+1. Optical Character Recognition (OCR) for scanned handwritten notes.
+2. Semantic vector embeddings (using pgvector or ChromaDB) for semantic similarity search.
+3. Mobile application companion built with React Native.
+4. Voice-to-text student question answering."
+
+================================================================================
+10. QUICK REFERENCE CHEAT SHEET
+================================================================================
+
+Default Ports:
+- Frontend Client: http://localhost:3000
+- Backend REST API: http://localhost:5000
+
+Primary Routes:
+- Student Dashboard:        /library/dashboard
+- Smart Learning Path:      /library/learning-path
+- Digital Library & Search: /library
+- Academic Categories:      /library/categories
+- Recent Materials:         /library/recent
+- Faculty Admin Dashboard:  /admin/dashboard
+- Material Upload:          /admin/materials/upload
+- Manage Materials:         /admin/materials
+- Manage Categories:        /admin/categories
+- Manage Users & Roles:     /admin/users
+- System Settings:          /admin/settings
+
+Default Demo Users (Stored in SQLite `dev.db`):
+- Dr. Rajesh Sharma  (Faculty Admin)   -> rajesh.sharma@college.edu  (Role: ADMIN)
+- Om                 (Student Viewer)  -> om.student@college.edu     (Role: VIEWER)
+- Sneha Patel        (Student Viewer)  -> sneha.patel@college.edu    (Role: VIEWER)
+- Prof. Anita Desai  (Faculty Admin)   -> anita.desai@college.edu    (Role: ADMIN)
+
+Key Command Lines:
+- Run backend:  cd backend && npm run dev
+- Run frontend: cd frontend && npm run dev
+- Run tests:    cd backend && npm test
+- Build check:  cd frontend && npm run build
+
+================================================================================
+                       END OF VIVA & PROJECT GUIDE
+================================================================================
