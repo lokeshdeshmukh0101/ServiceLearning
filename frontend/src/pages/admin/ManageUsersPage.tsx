@@ -1,85 +1,13 @@
-import React, { useState } from 'react';
-import { ShieldCheck, UserCheck, UserX, Plus, HardDrive, Edit2, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, UserCheck, UserX, Plus, HardDrive, Edit2, Check, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useAudit } from '../../context/AuditContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-
-interface ManagedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: 'ADMIN' | 'VIEWER';
-  status: 'Active' | 'Deactivated';
-  department: string;
-  quotaMB: number;         // storage quota in MB
-  usedMB: number;          // simulated used storage in MB
-}
-
-const INITIAL_USERS: ManagedUser[] = [
-  {
-    id: 'u-1',
-    name: 'Lokesh',
-    email: 'lokesh.admin@knowledgehub.edu',
-    role: 'ADMIN',
-    status: 'Active',
-    department: 'Computer Science & Service Learning',
-    quotaMB: 500,
-    usedMB: 212,
-  },
-  {
-    id: 'u-2',
-    name: 'Om',
-    email: 'om.student@knowledgehub.edu',
-    role: 'VIEWER',
-    status: 'Active',
-    department: 'Software Engineering',
-    quotaMB: 100,
-    usedMB: 64,
-  },
-  {
-    id: 'u-3',
-    name: 'Vedant',
-    email: 'vedant.student@knowledgehub.edu',
-    role: 'VIEWER',
-    status: 'Active',
-    department: 'Computer Science',
-    quotaMB: 100,
-    usedMB: 31,
-  },
-  {
-    id: 'u-4',
-    name: 'Omkar',
-    email: 'omkar.student@knowledgehub.edu',
-    role: 'VIEWER',
-    status: 'Active',
-    department: 'Data Science',
-    quotaMB: 150,
-    usedMB: 98,
-  },
-  {
-    id: 'u-5',
-    name: 'Aarav',
-    email: 'aarav.student@knowledgehub.edu',
-    role: 'VIEWER',
-    status: 'Active',
-    department: 'Information Technology',
-    quotaMB: 100,
-    usedMB: 7,
-  },
-  {
-    id: 'u-6',
-    name: 'Priya',
-    email: 'priya.student@knowledgehub.edu',
-    role: 'VIEWER',
-    status: 'Deactivated',
-    department: 'Artificial Intelligence',
-    quotaMB: 100,
-    usedMB: 55,
-  },
-];
+import { api, type ManagedUser } from '../../services/api';
 
 function QuotaBar({ used, quota, isDark }: { used: number; quota: number; isDark: boolean }) {
-  const pct = Math.min(100, Math.round((used / quota) * 100));
+  const safeQuota = Math.max(1, quota);
+  const pct = Math.min(100, Math.round((used / safeQuota) * 100));
   const color =
     pct >= 90 ? 'bg-red-500' :
     pct >= 70 ? 'bg-amber-500' :
@@ -100,9 +28,22 @@ function QuotaBar({ used, quota, isDark }: { used: number; quota: number; isDark
 }
 
 export const ManageUsersPage: React.FC = () => {
-  const [users, setUsers] = useState<ManagedUser[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [editQuotaId, setEditQuotaId] = useState<string | null>(null);
   const [quotaInputVal, setQuotaInputVal] = useState<number>(100);
+
+  // New User form state
+  const [isAdding, setIsAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState<'ADMIN' | 'VIEWER'>('VIEWER');
+  const [newDept, setNewDept] = useState('');
+  const [newQuota, setNewQuota] = useState(100);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { addLog } = useAudit();
   const { isDark } = useTheme();
   const { user: currentUser } = useAuth();
@@ -117,23 +58,57 @@ export const ManageUsersPage: React.FC = () => {
     ? 'bg-slate-700 border-slate-600 text-slate-200'
     : 'bg-white border-slate-300 text-slate-700';
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId && u.role !== 'ADMIN') {
-          const newStatus = u.status === 'Active' ? 'Deactivated' : 'Active';
-          addLog({
-            actor: currentUser?.name || 'Admin',
-            actorRole: 'ADMIN',
-            action: 'EDIT',
-            target: u.name,
-            detail: `Account ${newStatus.toLowerCase()}`,
-          });
-          return { ...u, status: newStatus };
-        }
-        return u;
-      })
-    );
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.getUsers();
+      setUsers(data);
+    } catch (err: any) {
+      console.error('Failed to load users:', err);
+      setError('Failed to load users from database.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, targetRole: 'ADMIN' | 'VIEWER') => {
+    try {
+      const updated = await api.updateUser(userId, { role: targetRole });
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: updated.role } : u)));
+      addLog({
+        actor: currentUser?.name || 'Admin',
+        actorRole: 'ADMIN',
+        action: 'EDIT',
+        target: updated.name,
+        detail: `Role changed to ${targetRole}`,
+      });
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to update user role');
+    }
+  };
+
+  const toggleUserStatus = async (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user) return;
+    const newStatus = user.status === 'Active' ? 'Deactivated' : 'Active';
+    try {
+      const updated = await api.updateUser(userId, { status: newStatus });
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: updated.status } : u)));
+      addLog({
+        actor: currentUser?.name || 'Admin',
+        actorRole: 'ADMIN',
+        action: 'EDIT',
+        target: user.name,
+        detail: `Account status set to ${newStatus}`,
+      });
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to update account status');
+    }
   };
 
   const startEditQuota = (u: ManagedUser) => {
@@ -141,24 +116,77 @@ export const ManageUsersPage: React.FC = () => {
     setQuotaInputVal(u.quotaMB);
   };
 
-  const saveQuota = (userId: string, userName: string) => {
+  const saveQuota = async (userId: string, userName: string) => {
     const newQuota = Math.max(1, quotaInputVal);
-    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, quotaMB: newQuota } : u));
-    addLog({
-      actor: currentUser?.name || 'Admin',
-      actorRole: 'ADMIN',
-      action: 'QUOTA_UPDATE',
-      target: userName,
-      detail: `Storage quota updated to ${newQuota} MB`,
-    });
-    setEditQuotaId(null);
+    try {
+      const updated = await api.updateUser(userId, { quotaMB: newQuota });
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, quotaMB: updated.quotaMB } : u)));
+      addLog({
+        actor: currentUser?.name || 'Admin',
+        actorRole: 'ADMIN',
+        action: 'QUOTA_UPDATE',
+        target: userName,
+        detail: `Storage quota updated to ${newQuota} MB`,
+      });
+      setEditQuotaId(null);
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to update quota');
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newEmail.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const created = await api.createUser({
+        name: newName.trim(),
+        email: newEmail.trim(),
+        role: newRole,
+        department: newDept.trim() || 'General Studies',
+        quotaMB: Number(newQuota) || 100,
+      });
+      setUsers((prev) => [...prev, created]);
+      addLog({
+        actor: currentUser?.name || 'Admin',
+        actorRole: 'ADMIN',
+        action: 'CREATE',
+        target: created.name,
+        detail: `Created user account (${created.role})`,
+      });
+      setNewName('');
+      setNewEmail('');
+      setNewDept('');
+      setIsAdding(false);
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to create user');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!window.confirm(`Are you sure you want to remove user "${userName}"?`)) return;
+    try {
+      await api.deleteUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      addLog({
+        actor: currentUser?.name || 'Admin',
+        actorRole: 'ADMIN',
+        action: 'DELETE',
+        target: userName,
+        detail: 'Deleted user account',
+      });
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to delete user');
+    }
   };
 
   // Summary stats
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.status === 'Active').length;
-  const totalUsedMB = users.reduce((s, u) => s + u.usedMB, 0);
-  const totalQuotaMB = users.reduce((s, u) => s + u.quotaMB, 0);
+  const totalUsedMB = users.reduce((s, u) => s + (u.usedMB || 0), 0);
+  const totalQuotaMB = users.reduce((s, u) => s + (u.quotaMB || 0), 0);
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
@@ -167,17 +195,94 @@ export const ManageUsersPage: React.FC = () => {
         <div>
           <h1 className={`text-2xl font-extrabold tracking-tight ${text}`}>Manage Users & Access</h1>
           <p className={`text-xs font-medium mt-1 ${subtext}`}>
-            Activate accounts, manage storage quotas, and control institutional permissions.
+            Activate accounts, switch roles between Admin and Viewer, and configure storage limits. All changes are saved to the database.
           </p>
         </div>
         <button
-          onClick={() => alert('User invitations managed via institutional SSO connection.')}
-          className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center gap-2 self-start sm:self-auto"
+          onClick={() => setIsAdding(true)}
+          className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          Invite Student
+          Add User / Student
         </button>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2 text-red-700 text-xs font-semibold">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+          <button onClick={loadUsers} className="ml-auto underline font-bold">Retry</button>
+        </div>
+      )}
+
+      {/* Add User Modal / Box */}
+      {isAdding && (
+        <form onSubmit={handleCreateUser} className={`p-5 rounded-2xl border space-y-4 shadow-sm animate-fade-in ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-blue-50/80 border-blue-200'}`}>
+          <h3 className={`text-sm font-bold ${text}`}>Register New Institutional User</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Full Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. Rohini Sharma"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                required
+                className={`w-full text-xs p-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Email *</label>
+              <input
+                type="email"
+                placeholder="rohini@knowledgehub.edu"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                required
+                className={`w-full text-xs p-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Role *</label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as 'ADMIN' | 'VIEWER')}
+                className={`w-full text-xs p-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+              >
+                <option value="VIEWER">Student Viewer</option>
+                <option value="ADMIN">Faculty Administrator</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Department</label>
+              <input
+                type="text"
+                placeholder="Computer Science"
+                value={newDept}
+                onChange={(e) => setNewDept(e.target.value)}
+                className={`w-full text-xs p-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl border ${isDark ? 'border-slate-600 text-slate-300' : 'border-slate-300 text-slate-600 bg-white'}`}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-xl flex items-center gap-1.5 font-bold shadow-sm transition-all"
+            >
+              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Save User to Database
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -202,111 +307,136 @@ export const ManageUsersPage: React.FC = () => {
 
       {/* Users Table */}
       <div className={`rounded-2xl border overflow-hidden shadow-xs ${card}`}>
-        <table className="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr className={`border-b font-bold uppercase tracking-wider ${headBg} ${subtext}`}>
-              <th className="px-5 py-3.5">User</th>
-              <th className="px-5 py-3.5">Department</th>
-              <th className="px-5 py-3.5">Role</th>
-              <th className="px-5 py-3.5">Storage Quota</th>
-              <th className="px-5 py-3.5">Account Status</th>
-              <th className="px-5 py-3.5 text-right">Controls</th>
-            </tr>
-          </thead>
-          <tbody className={`divide-y ${divider}`}>
-            {users.map((u) => (
-              <tr key={u.id} className={`transition-colors ${rowHover}`}>
-                {/* User */}
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${u.role === 'ADMIN' ? (isDark ? 'bg-amber-900/50 text-amber-400' : 'bg-amber-100 text-amber-800') : (isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700')}`}>
-                      {u.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className={`font-bold ${text}`}>{u.name}</p>
-                      <p className={`font-mono text-[10px] ${subtext}`}>{u.email}</p>
-                    </div>
-                  </div>
-                </td>
-
-                {/* Department */}
-                <td className={`px-5 py-4 ${subtext}`}>{u.department}</td>
-
-                {/* Role */}
-                <td className="px-5 py-4">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${u.role === 'ADMIN' ? (isDark ? 'bg-amber-900/40 text-amber-400 border border-amber-700/50' : 'bg-amber-100 text-amber-800 border border-amber-200') : (isDark ? 'bg-blue-900/40 text-blue-400 border border-blue-700/50' : 'bg-blue-50 text-blue-700 border border-blue-100')}`}>
-                    {u.role === 'ADMIN' ? (
-                      <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Admin</span>
-                    ) : 'Viewer'}
-                  </span>
-                </td>
-
-                {/* Storage Quota */}
-                <td className="px-5 py-4 min-w-[180px]">
-                  {editQuotaId === u.id ? (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min={1}
-                        value={quotaInputVal}
-                        onChange={(e) => setQuotaInputVal(Number(e.target.value))}
-                        className={`w-20 text-xs px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-amber-500 ${inputCls}`}
-                      />
-                      <span className={`text-[11px] ${subtext}`}>MB</span>
-                      <button onClick={() => saveQuota(u.id, u.name)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md">
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setEditQuotaId(null)} className="p-1 text-red-500 hover:bg-red-50 rounded-md">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <QuotaBar used={u.usedMB} quota={u.quotaMB} isDark={isDark} />
-                      <button
-                        onClick={() => startEditQuota(u)}
-                        className={`flex items-center gap-1 text-[11px] font-semibold transition-colors ${isDark ? 'text-slate-400 hover:text-amber-400' : 'text-slate-400 hover:text-amber-600'}`}
-                      >
-                        <Edit2 className="w-2.5 h-2.5" />
-                        Edit Quota
-                      </button>
-                    </div>
-                  )}
-                </td>
-
-                {/* Status */}
-                <td className="px-5 py-4">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${u.status === 'Active' ? (isDark ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-800') : (isDark ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-800')}`}>
-                    {u.status}
-                  </span>
-                </td>
-
-                {/* Controls */}
-                <td className="px-5 py-4 text-right">
-                  {u.role === 'ADMIN' ? (
-                    <span className={`text-[11px] italic font-medium ${subtext}`}>Primary Admin (Protected)</span>
-                  ) : u.status === 'Active' ? (
-                    <button
-                      onClick={() => toggleUserStatus(u.id)}
-                      className="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors inline-flex items-center gap-1"
-                    >
-                      <UserX className="w-3.5 h-3.5" />
-                      Deactivate
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => toggleUserStatus(u.id)}
-                      className="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors inline-flex items-center gap-1"
-                    >
-                      <UserCheck className="w-3.5 h-3.5" />
-                      Activate
-                    </button>
-                  )}
-                </td>
+        {loading ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center gap-2">
+            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+            <p className="text-xs text-slate-500 font-semibold">Loading users from database…</p>
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className={`border-b font-bold uppercase tracking-wider text-[11px] ${headBg} ${subtext}`}>
+                <th className="px-5 py-3.5">User</th>
+                <th className="px-5 py-3.5">Department</th>
+                <th className="px-5 py-3.5">Role (Interactive)</th>
+                <th className="px-5 py-3.5">Storage Quota</th>
+                <th className="px-5 py-3.5">Account Status</th>
+                <th className="px-5 py-3.5 text-right">Controls</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className={`divide-y ${divider}`}>
+              {users.map((u) => (
+                <tr key={u.id} className={`transition-colors ${rowHover}`}>
+                  {/* User */}
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${u.role === 'ADMIN' ? (isDark ? 'bg-amber-900/50 text-amber-400' : 'bg-amber-100 text-amber-800') : (isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700')}`}>
+                        {u.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className={`font-bold ${text}`}>{u.name}</p>
+                        <p className={`font-mono text-[10px] ${subtext}`}>{u.email}</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Department */}
+                  <td className={`px-5 py-4 ${subtext}`}>{u.department}</td>
+
+                  {/* Role Dropdown */}
+                  <td className="px-5 py-4">
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleRoleChange(u.id, e.target.value as 'ADMIN' | 'VIEWER')}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border transition-all cursor-pointer ${
+                        u.role === 'ADMIN'
+                          ? isDark
+                            ? 'bg-amber-900/40 text-amber-300 border-amber-600'
+                            : 'bg-amber-50 text-amber-800 border-amber-300'
+                          : isDark
+                          ? 'bg-indigo-900/40 text-indigo-300 border-indigo-600'
+                          : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                      }`}
+                    >
+                      <option value="VIEWER">Student Viewer</option>
+                      <option value="ADMIN">Faculty Admin</option>
+                    </select>
+                  </td>
+
+                  {/* Storage Quota */}
+                  <td className="px-5 py-4 min-w-[180px]">
+                    {editQuotaId === u.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={1}
+                          value={quotaInputVal}
+                          onChange={(e) => setQuotaInputVal(Number(e.target.value))}
+                          className={`w-20 text-xs px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-amber-500 ${inputCls}`}
+                        />
+                        <span className={`text-[11px] ${subtext}`}>MB</span>
+                        <button onClick={() => saveQuota(u.id, u.name)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setEditQuotaId(null)} className="p-1 text-red-500 hover:bg-red-50 rounded-md">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <QuotaBar used={u.usedMB || 0} quota={u.quotaMB || 100} isDark={isDark} />
+                        <button
+                          onClick={() => startEditQuota(u)}
+                          className={`flex items-center gap-1 text-[11px] font-semibold transition-colors ${isDark ? 'text-slate-400 hover:text-amber-400' : 'text-slate-400 hover:text-amber-600'}`}
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                          Edit Quota
+                        </button>
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-5 py-4">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${u.status === 'Active' ? (isDark ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-800') : (isDark ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-800')}`}>
+                      {u.status}
+                    </span>
+                  </td>
+
+                  {/* Controls */}
+                  <td className="px-5 py-4 text-right space-x-1.5">
+                    {u.status === 'Active' ? (
+                      <button
+                        onClick={() => toggleUserStatus(u.id)}
+                        className="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors inline-flex items-center gap-1"
+                        title="Deactivate account"
+                      >
+                        <UserX className="w-3.5 h-3.5" />
+                        Deactivate
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => toggleUserStatus(u.id)}
+                        className="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1"
+                        title="Activate account"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        Activate
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.name)}
+                      className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center"
+                      title="Remove user"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

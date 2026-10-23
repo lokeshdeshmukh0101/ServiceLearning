@@ -7,8 +7,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   X, Sparkles, Loader2, ChevronLeft, ChevronRight, Check, RotateCcw,
-  Trophy, XCircle, BookOpen, Brain, AlertCircle,
+  Trophy, XCircle, BookOpen, Brain, AlertCircle, Compass, ArrowRight,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Document } from '../../types';
 import { api, type ClientQuestion, type QuizGenerateResponse, type AttemptResult, type AttemptAnswer, type QuizOptions } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
@@ -38,6 +39,7 @@ interface QuizModalProps {
 export const QuizModal: React.FC<QuizModalProps> = ({ document, onClose }) => {
   const { isDark } = useTheme();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>('config');
   const [errorMsg, setErrorMsg] = useState('');
@@ -439,6 +441,49 @@ export const QuizModal: React.FC<QuizModalProps> = ({ document, onClose }) => {
                   {results.percentage >= 80 ? t('quiz.excellent') : results.percentage >= 50 ? t('quiz.good') : t('quiz.review')}
                 </p>
               </div>
+
+              {/* Topic Breakdown & Knowledge Gap Coach */}
+              {results.topicBreakdown && results.topicBreakdown.length > 0 && (
+                <div className={`p-4 rounded-2xl border space-y-3 ${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-extrabold uppercase tracking-wider ${subtext}`}>Topic Performance</span>
+                    <span className={`text-[11px] font-semibold ${subtext}`}>{results.topicBreakdown.length} topics evaluated</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {results.topicBreakdown.map((tb, i) => (
+                      <span
+                        key={i}
+                        className={`text-xs px-2.5 py-1 rounded-xl font-bold flex items-center gap-1.5 border ${
+                          tb.accuracy >= 70
+                            ? isDark ? 'bg-emerald-900/30 text-emerald-300 border-emerald-700/50' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : isDark ? 'bg-rose-900/30 text-rose-300 border-rose-700/50' : 'bg-rose-100 text-rose-800 border-rose-200'
+                        }`}
+                      >
+                        {tb.accuracy >= 70 ? '✓' : '⚠️'} {tb.topic} ({tb.accuracy}%)
+                      </span>
+                    ))}
+                  </div>
+
+                  {results.weakTopics && results.weakTopics.length > 0 && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <p className={`text-xs font-bold ${text}`}>Weak Topics Detected:</p>
+                        <p className="text-xs text-rose-500 font-semibold">{results.weakTopics.join(', ')}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          navigate(`/library/learn/${document.id}`);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-slate-950 font-extrabold text-xs shadow-md flex items-center gap-1.5 transition-all"
+                      >
+                        <Compass className="w-3.5 h-3.5" />
+                        <span>Launch Guided Revision</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Question-by-question review */}
               <div>

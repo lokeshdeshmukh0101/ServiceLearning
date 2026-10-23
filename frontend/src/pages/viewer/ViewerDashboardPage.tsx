@@ -16,6 +16,7 @@ import {
   Sparkles,
   ArrowRight,
   TrendingUp,
+  Compass,
 } from 'lucide-react';
 import type { Document, SystemStatus } from '../../types';
 import { api } from '../../services/api';
@@ -124,6 +125,42 @@ export const ViewerDashboardPage: React.FC = () => {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Signature USP Banner: Smart Learning Path */}
+      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 text-white p-6 md:p-8 rounded-3xl border border-indigo-500/30 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2 max-w-2xl relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[11px] font-extrabold uppercase tracking-wider">
+            <Compass className="w-3.5 h-3.5" /> Signature Experience
+          </div>
+          <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">
+            Smart Learning Path: Upload once. Learn in your language. Practice at your level.
+          </h2>
+          <p className="text-xs md:text-sm text-indigo-200/90 leading-relaxed">
+            Transform any static document into an interactive 6-step mastery journey: Understand with AI summaries, test your comprehension, identify weak topics, and take targeted follow-up quizzes.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] font-semibold text-indigo-300">
+            <span className="flex items-center gap-1">1. Select</span>
+            <span>&rarr;</span>
+            <span className="flex items-center gap-1">2. Understand</span>
+            <span>&rarr;</span>
+            <span className="flex items-center gap-1">3. Practice</span>
+            <span>&rarr;</span>
+            <span className="flex items-center gap-1">4. Gap Detection</span>
+            <span>&rarr;</span>
+            <span className="flex items-center gap-1">5. Revision</span>
+            <span>&rarr;</span>
+            <span className="flex items-center gap-1 text-emerald-300">6. Improve</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => navigate('/library/learning-path')}
+          className="shrink-0 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-slate-950 font-black text-xs md:text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center gap-2 relative z-10 group"
+        >
+          <span>Launch Learning Path</span>
+          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+        </button>
       </div>
 
       {/* Metrics Grid */}

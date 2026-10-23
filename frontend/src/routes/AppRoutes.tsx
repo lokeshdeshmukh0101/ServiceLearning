@@ -10,6 +10,7 @@ import { CategoriesPage } from '../pages/viewer/CategoriesPage';
 import { RecentPage } from '../pages/viewer/RecentPage';
 import { DownloadsPage } from '../pages/viewer/DownloadsPage';
 import { ProfilePage } from '../pages/viewer/ProfilePage';
+import { SmartLearningPathPage } from '../pages/viewer/SmartLearningPathPage';
 
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
 import { ManageMaterialsPage } from '../pages/admin/ManageMaterialsPage';
@@ -43,6 +44,22 @@ export const AppRoutes: React.FC = () => {
         element={
           <ViewerLayout>
             <LibraryPage />
+          </ViewerLayout>
+        }
+      />
+      <Route
+        path="/library/learning-path"
+        element={
+          <ViewerLayout>
+            <SmartLearningPathPage />
+          </ViewerLayout>
+        }
+      />
+      <Route
+        path="/library/learn/:documentId"
+        element={
+          <ViewerLayout>
+            <SmartLearningPathPage />
           </ViewerLayout>
         }
       />

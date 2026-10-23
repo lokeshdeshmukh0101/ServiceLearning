@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import {
   X, Download, FileText, Calendar, Tag, User, Eye, Check, Edit3,
-  Sparkles, Loader2, BookOpen, Hash, Brain,
+  Sparkles, Loader2, BookOpen, Hash, Brain, Compass, MessageSquarePlus,
 } from 'lucide-react';
 import type { Document } from '../../types';
-import { api } from '../../services/api';
+import { api, type StudyMode } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 import { useAudit } from '../../context/AuditContext';
 import { useAuth } from '../../context/AuthContext';
 import { QuizModal } from './QuizModal';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { AppLanguage } from '../../i18n';
+import { SpeechPlayer } from '../ui/SpeechPlayer';
+import { TextSizeControls, getTextSizeClass, type TextSize } from '../ui/TextSizeControls';
+import { FeedbackModal } from '../feedback/FeedbackModal';
 
 interface MaterialModalProps {
   material: Document | null;
@@ -53,6 +57,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
   const { addLog } = useAudit();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<TabType>('content');
   const [isEditingTags, setIsEditingTags] = useState(false);
@@ -65,6 +70,9 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
   const [showQuiz, setShowQuiz] = useState(false);
   const [summaryLanguage, setSummaryLanguage] = useState<AppLanguage>((i18n.language as AppLanguage) || 'en');
   const [summaryLength, setSummaryLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [studyMode, setStudyMode] = useState<StudyMode>('summary');
+  const [textSize, setTextSize] = useState<TextSize>('base');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   if (!material) return null;
 
@@ -95,12 +103,13 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
     }
   };
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateSummary = async (modeOverride?: StudyMode) => {
+    const targetMode = modeOverride || studyMode;
     setIsGeneratingSummary(true);
     setSummaryError(null);
     setActiveTab('summary');
     try {
-      const result = await api.generateSummary(material.id, summaryLanguage, summaryLength);
+      const result = await api.generateSummary(material.id, summaryLanguage, summaryLength, targetMode);
       setAiSummary(result.summary);
     } catch (err: any) {
       const msg = err?.response?.data?.error || t('summary.insufficientContent');
@@ -311,21 +320,24 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
 
               {/* Extracted Text with Highlight */}
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className={`text-sm font-extrabold flex items-center gap-2 ${text}`}>
                     <Eye className="w-4 h-4 text-blue-500" />
                     Extracted Document Content
                   </h3>
                   <div className="flex items-center gap-2">
+                    <TextSizeControls currentSize={textSize} onChange={setTextSize} />
+                    {material.extractedText && (
+                      <SpeechPlayer text={material.extractedText.slice(0, 3000)} lang={summaryLanguage} compact label="Read Document" />
+                    )}
                     {searchQuery.trim() && occurrenceCount > 0 && (
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
                         {occurrenceCount} keyword match{occurrenceCount !== 1 ? 'es' : ''} highlighted
                       </span>
                     )}
-                    <span className={`text-[11px] font-bold uppercase tracking-wider ${subtext}`}>Indexed for AI Search</span>
                   </div>
                 </div>
-                <div className={`p-5 rounded-2xl text-xs font-mono max-h-64 overflow-y-auto leading-relaxed border shadow-inner ${codeBlock}`}>
+                <div className={`p-5 rounded-2xl font-mono max-h-64 overflow-y-auto leading-relaxed border shadow-inner ${codeBlock} ${getTextSizeClass(textSize)}`}>
                   <HighlightedText
                     text={material.extractedText || 'Extracted document text processing complete.'}
                     query={searchQuery}
@@ -338,7 +350,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
           {/* ── AI SUMMARY TAB ──────────────────────────────────────── */}
           {activeTab === 'summary' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
                     <Sparkles className="w-5 h-5" />
@@ -348,32 +360,58 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                     <p className={`text-xs ${subtext}`}>{t('summary.subtitle')}</p>
                   </div>
                 </div>
-                {/* Language + Length selectors */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {(['en','hi','mr'] as AppLanguage[]).map(l => (
-                    <button
-                      key={l}
-                      onClick={() => setSummaryLanguage(l)}
-                      className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-all ${
-                        summaryLanguage === l
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : isDark ? 'text-slate-300 border-slate-600 hover:border-purple-500' : 'text-slate-500 border-slate-300 hover:border-purple-400'
-                      }`}
-                    >{l.toUpperCase()}</button>
-                  ))}
-                  <span className={`text-slate-400 text-xs mx-1`}>|</span>
-                  {(['short','medium','long'] as const).map(len => (
-                    <button
-                      key={len}
-                      onClick={() => setSummaryLength(len)}
-                      className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-all capitalize ${
-                        summaryLength === len
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : isDark ? 'text-slate-300 border-slate-600 hover:border-purple-500' : 'text-slate-500 border-slate-300 hover:border-purple-400'
-                      }`}
-                    >{t(`summary.${len}`)}</button>
-                  ))}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Language Selector */}
+                  <div className="flex items-center gap-1">
+                    {(['en', 'hi', 'mr'] as AppLanguage[]).map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => setSummaryLanguage(l)}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all ${
+                          summaryLanguage === l
+                            ? 'bg-purple-600 text-white border-purple-500 shadow-sm'
+                            : isDark ? 'text-slate-300 border-slate-600 hover:border-purple-500' : 'text-slate-600 border-slate-300 hover:border-purple-400'
+                        }`}
+                      >
+                        {l === 'en' ? 'EN' : l === 'hi' ? 'हिंदी' : 'मराठी'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <TextSizeControls currentSize={textSize} onChange={setTextSize} />
+
+                  {aiSummary && (
+                    <SpeechPlayer text={aiSummary} lang={summaryLanguage} compact label="Listen" />
+                  )}
                 </div>
+              </div>
+
+              {/* Study Mode Pills */}
+              <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+                {[
+                  { mode: 'summary' as StudyMode, label: t('summary.modeOverview', 'Overview') },
+                  { mode: 'simplified' as StudyMode, label: t('summary.modeSimplified', 'Simplified (ELI5)') },
+                  { mode: 'key_concepts' as StudyMode, label: t('summary.modeKeyConcepts', 'Key Concepts') },
+                  { mode: 'revision_points' as StudyMode, label: t('summary.modeRevisionPoints', 'Revision Notes') },
+                  { mode: 'chapter_breakdown' as StudyMode, label: t('summary.modeChapterBreakdown', 'Section Breakdown') },
+                  { mode: 'revision_questions' as StudyMode, label: t('summary.modeRevisionQuestions', 'Study Questions') },
+                ].map(({ mode, label }) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      setStudyMode(mode);
+                      handleGenerateSummary(mode);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                      studyMode === mode
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : isDark ? 'text-slate-300 hover:text-white hover:bg-slate-700' : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
 
               {isGeneratingSummary ? (
@@ -396,28 +434,28 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                 <div className={`p-8 rounded-2xl border flex flex-col items-center gap-4 text-center ${isDark ? 'bg-red-900/20 border-red-700/50' : 'bg-red-50 border-red-200'}`}>
                   <p className="text-sm font-bold text-red-500">{t('summary.error')}</p>
                   <p className={`text-xs ${subtext}`}>{summaryError}</p>
-                  <button onClick={handleGenerateSummary} className="text-xs font-bold text-purple-600 hover:text-purple-700">{t('summary.retry')}</button>
+                  <button onClick={() => handleGenerateSummary()} className="text-xs font-bold text-purple-600 hover:text-purple-700">{t('summary.retry')}</button>
                 </div>
               ) : aiSummary ? (
-                <div className={`p-6 rounded-2xl border space-y-4 ${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-gradient-to-br from-purple-50/60 to-indigo-50/60 border-purple-200/60'}`}>
+                <div className={`p-6 rounded-2xl border space-y-4 ${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-gradient-to-br from-purple-50/60 to-indigo-50/60 border-purple-200/60'} ${getTextSizeClass(textSize)}`}>
                   {aiSummary.split('\n\n').map((block, i) => {
                     if (block.startsWith('**') && block.endsWith('**')) {
-                      return <h4 key={i} className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>{block.replace(/\*\*/g, '')}</h4>;
+                      return <h4 key={i} className={`font-extrabold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>{block.replace(/\*\*/g, '')}</h4>;
                     }
                     if (block.startsWith('**')) {
                       const [heading, ...rest] = block.split('\n');
                       return (
                         <div key={i}>
-                          <h4 className={`text-xs font-extrabold uppercase tracking-wider mb-2 ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>{heading.replace(/\*\*/g, '')}</h4>
+                          <h4 className={`font-extrabold uppercase tracking-wider mb-2 ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>{heading.replace(/\*\*/g, '')}</h4>
                           <div className="space-y-1.5">
                             {rest.map((line, j) => (
-                              <p key={j} className={`text-xs leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'} ${line.startsWith('•') ? 'pl-2' : ''}`}>{line}</p>
+                              <p key={j} className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'} ${line.startsWith('•') ? 'pl-2' : ''}`}>{line}</p>
                             ))}
                           </div>
                         </div>
                       );
                     }
-                    return <p key={i} className={`text-xs leading-relaxed italic ${subtext}`}>{block.replace(/\*/g, '')}</p>;
+                    return <p key={i} className={`leading-relaxed italic ${subtext}`}>{block.replace(/\*/g, '')}</p>;
                   })}
                 </div>
               ) : (
@@ -429,7 +467,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                   </div>
                   <button
                     id="generate-summary-btn"
-                    onClick={handleGenerateSummary}
+                    onClick={() => handleGenerateSummary()}
                     className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl shadow-md shadow-purple-500/20 transition-all"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
@@ -477,26 +515,58 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
         </div>
 
         {/* ─── Footer ──────────────────────────────────────────────── */}
-        <div className={`px-6 py-4 border-t flex items-center justify-between ${headerBg} ${border}`}>
-          <button
-            onClick={onClose}
-            className={`px-4 py-2.5 text-xs font-bold rounded-xl border transition-all ${isDark ? 'text-slate-300 border-slate-600 hover:bg-slate-700' : 'text-slate-700 bg-white border-slate-300 hover:bg-slate-100'}`}
-          >
-            {t('document.closeInspector')}
-          </button>
-          <a
-            href={api.getDownloadUrl(material.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleDownload}
-            aria-label={t('document.downloadSize', { size: formatSize(material.fileSize) })}
-            className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            {t('document.downloadSize', { size: formatSize(material.fileSize) })}
-          </a>
+        <div className={`px-6 py-4 border-t flex flex-wrap items-center justify-between gap-3 ${headerBg} ${border}`}>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className={`px-4 py-2.5 text-xs font-bold rounded-xl border transition-all ${isDark ? 'text-slate-300 border-slate-600 hover:bg-slate-700' : 'text-slate-700 bg-white border-slate-300 hover:bg-slate-100'}`}
+            >
+              {t('document.closeInspector')}
+            </button>
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className={`px-3 py-2 text-xs font-bold rounded-xl border flex items-center gap-1.5 transition-all ${isDark ? 'text-slate-400 border-slate-700 hover:text-white hover:bg-slate-800' : 'text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-slate-100'}`}
+              title="Report an issue with this document, summary, or translation"
+            >
+              <MessageSquarePlus className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Report Issue</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                onClose();
+                navigate(`/library/learn/${material.id}`);
+              }}
+              className="px-4 py-2.5 text-xs font-bold text-indigo-100 bg-indigo-900/60 hover:bg-indigo-900 border border-indigo-500/40 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <Compass className="w-4 h-4 text-amber-400" />
+              <span>Smart Learning Path</span>
+            </button>
+
+            <a
+              href={api.getDownloadUrl(material.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleDownload}
+              aria-label={t('document.downloadSize', { size: formatSize(material.fileSize) })}
+              className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {t('document.downloadSize', { size: formatSize(material.fileSize) })}
+            </a>
+          </div>
         </div>
       </div>
+
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        documentId={material.id}
+        documentTitle={material.filename}
+      />
     </div>
   );
 };
+

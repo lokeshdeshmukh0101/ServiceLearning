@@ -18,7 +18,8 @@
     "auditLog": "Audit Log",
     "settings": "Settings",
     "openMenu": "Open navigation menu",
-    "openMobileMenu": "Open mobile navigation menu"
+    "openMobileMenu": "Open mobile navigation menu",
+    "learningPath": "Smart Learning Path"
   },
   "auth": {
     "signIn": "Sign In",
@@ -122,7 +123,14 @@
     "short": "Short",
     "medium": "Medium",
     "long": "Long",
-    "insufficientContent": "Document does not contain enough extractable text to summarize."
+    "insufficientContent": "Document does not contain enough extractable text to summarize.",
+    "modeOverview": "Overview",
+    "modeSimplified": "Simplified (ELI5)",
+    "modeKeyConcepts": "Key Concepts & Definitions",
+    "modeRevisionPoints": "Revision Points",
+    "modeChapterBreakdown": "Section Breakdown",
+    "modeRevisionQuestions": "Study Questions",
+    "launchPath": "Launch Smart Learning Path"
   },
   "quiz": {
     "title": "AI Quiz Generator",
@@ -170,7 +178,10 @@
     "noContent": "Document does not contain enough text to generate a quiz.",
     "malformed": "AI output did not match expected quiz format. Please retry.",
     "tabLabel": "Quiz",
-    "noAnswers": "Correct answers are revealed after submission."
+    "noAnswers": "Correct answers are revealed after submission.",
+    "weakTopics": "Weak Topics Identified",
+    "strongTopics": "Mastered Topics",
+    "launchPathCoach": "Start Guided Revision"
   },
   "admin": {
     "dashboard": "Faculty Admin Dashboard",
@@ -302,5 +313,22 @@
     "processing": "processing",
     "failed": "failed",
     "new": "New"
+  },
+  "learningPath": {
+    "title": "Smart Learning Path",
+    "tagline": "Upload once. Learn in your language. Practice at your level.",
+    "step1": "Select Document",
+    "step2": "Understand",
+    "step3": "Practice",
+    "step4": "Identify Gaps",
+    "step5": "Targeted Revision",
+    "step6": "Measure Improvement",
+    "noPaths": "No active learning paths yet. Select any document below to begin your personalized journey.",
+    "startJourney": "Start Learning Path",
+    "continueJourney": "Continue Learning",
+    "retestScore": "Follow-up Quiz Score",
+    "initialScore": "Initial Score",
+    "gain": "Performance Improvement"
   }
 }
+

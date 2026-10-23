@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import JSZip from 'jszip';
 import { ExtractionResult, ExtractedPage } from '../types/index.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -17,9 +18,9 @@ const MAX_TEXT_BYTES = 2 * 1024 * 1024; // 2 MB of text before we truncate (safe
 const MIN_MEANINGFUL_CHARS = 30;         // fewer chars = scanned/empty
 
 // Supported extensions (enforced alongside magic bytes)
-export const SUPPORTED_EXTENSIONS = new Set(['.pdf', '.docx', '.txt', '.md']);
+export const SUPPORTED_EXTENSIONS = new Set(['.pdf', '.docx', '.pptx', '.txt', '.md']);
 // Legacy formats that we explicitly reject with a friendly message
-export const LEGACY_EXTENSIONS = new Set(['.doc', '.ppt', '.pptx']);
+export const LEGACY_EXTENSIONS = new Set(['.doc', '.ppt']);
 
 // Magic bytes (file signatures)
 const MAGIC_PDF = [0x25, 0x50, 0x44, 0x46];          // %PDF
@@ -73,11 +74,15 @@ export async function extractText(
 
   try {
     // Legacy unsupported formats
-    if (['doc', 'ppt', 'pptx'].includes(normalizedType)) {
+    if (['doc', 'ppt'].includes(normalizedType)) {
       return makeError(
         'UNSUPPORTED',
-        `Format .${normalizedType} is not supported. Please convert to DOCX or PDF.`
+        `Format .${normalizedType} is not supported. Please convert to modern format (DOCX or PPTX).`
       );
+    }
+
+    if (normalizedType === 'pptx') {
+      return await extractPptxText(filePath);
     }
 
     if (normalizedType === 'pdf' || isHeaderMatch(header, MAGIC_PDF)) {
@@ -86,7 +91,7 @@ export async function extractText(
 
     if (
       normalizedType === 'docx' ||
-      (isHeaderMatch(header, MAGIC_DOCX_ZIP) && normalizedType !== 'pdf')
+      (isHeaderMatch(header, MAGIC_DOCX_ZIP) && normalizedType !== 'pdf' && normalizedType !== 'pptx')
     ) {
       return await extractDocxText(filePath);
     }
@@ -192,6 +197,79 @@ async function extractDocxText(filePath: string): Promise<RichExtractionResult> 
   };
 }
 
+async function extractPptxText(filePath: string): Promise<RichExtractionResult> {
+  let zip: JSZip;
+  try {
+    const dataBuffer = await fs.promises.readFile(filePath);
+    zip = await JSZip.loadAsync(dataBuffer);
+  } catch (err: any) {
+    return makeError('CORRUPT', 'Presentation archive could not be opened: ' + (err?.message || 'corrupt zip'));
+  }
+
+  const slideFiles = Object.keys(zip.files).filter(
+    (f) => f.startsWith('ppt/slides/slide') && f.endsWith('.xml')
+  );
+
+  if (slideFiles.length === 0) {
+    return {
+      text: '',
+      extractionError: {
+        code: 'EMPTY',
+        message: 'Presentation contains no slides or readable slide content.',
+      },
+    };
+  }
+
+  // Sort slides in natural numeric order: slide1.xml, slide2.xml, ... slide10.xml
+  slideFiles.sort((a, b) => {
+    const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || '0', 10);
+    const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || '0', 10);
+    return numA - numB;
+  });
+
+  const pages: ExtractedPage[] = [];
+  const slideTexts: string[] = [];
+
+  for (let i = 0; i < slideFiles.length; i++) {
+    const slideFile = slideFiles[i];
+    const xmlContent = await zip.files[slideFile].async('text');
+    // Extract text from <a:t>...</a:t> tags
+    const textMatches = xmlContent.match(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g) || [];
+    const textPieces = textMatches
+      .map((tag) => tag.replace(/<[^>]+>/g, '').trim())
+      .filter((t) => t.length > 0);
+    const slideText = textPieces.join(' ').replace(/\s+/g, ' ').trim();
+    const slideNumber = i + 1;
+
+    if (slideText) {
+      pages.push({ pageNumber: slideNumber, text: slideText });
+      slideTexts.push(`--- Slide ${slideNumber} ---\n${slideText}`);
+    }
+  }
+
+  const fullText = slideTexts.join('\n\n').trim();
+
+  if (fullText.length < MIN_MEANINGFUL_CHARS) {
+    return {
+      text: '',
+      pageCount: slideFiles.length,
+      extractionError: {
+        code: 'EMPTY',
+        message: 'Presentation slides contain no extractable text.',
+      },
+    };
+  }
+
+  const truncated = fullText.length > MAX_TEXT_BYTES ? fullText.slice(0, MAX_TEXT_BYTES) : fullText;
+
+  return {
+    text: truncated,
+    pages: pages.length > 0 ? pages : undefined,
+    pageCount: slideFiles.length,
+    wordCount: countWords(truncated),
+  };
+}
+
 async function extractPlainText(filePath: string): Promise<RichExtractionResult> {
   const content = await fs.promises.readFile(filePath, 'utf-8');
   const text = content.trim();
@@ -238,19 +316,19 @@ export function validateFileType(
   const ext = path.extname(originalName).toLowerCase();
 
   if (LEGACY_EXTENSIONS.has(ext)) {
-    return `Format ${ext} is not supported. Please convert to DOCX or PDF.`;
+    return `Format ${ext} is not supported. Please convert to modern format (DOCX, PPTX, or PDF).`;
   }
 
   if (!SUPPORTED_EXTENSIONS.has(ext)) {
-    return `Format ${ext} is not allowed. Accepted: PDF, DOCX, TXT, MD.`;
+    return `Format ${ext} is not allowed. Accepted: PDF, DOCX, PPTX, TXT, MD.`;
   }
 
   if (ext === '.pdf' && !isHeaderMatch(headerBuf, MAGIC_PDF)) {
     return 'File claims to be PDF but does not have PDF magic bytes.';
   }
 
-  if (ext === '.docx' && !isHeaderMatch(headerBuf, MAGIC_DOCX_ZIP)) {
-    return 'File claims to be DOCX but does not have valid ZIP/DOCX magic bytes.';
+  if ((ext === '.docx' || ext === '.pptx') && !isHeaderMatch(headerBuf, MAGIC_DOCX_ZIP)) {
+    return `File claims to be ${ext.toUpperCase().replace('.', '')} but does not have valid ZIP magic bytes.`;
   }
 
   return null;

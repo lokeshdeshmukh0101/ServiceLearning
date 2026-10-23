@@ -16,6 +16,9 @@ import settingsRoutes from './routes/settingsRoutes.js';
 import summaryRoutes from './routes/summaryRoutes.js';
 import quizRoutes from './routes/quizRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
+import learningPathRoutes from './routes/learningPathRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 // Middleware imports
 import { errorHandler } from './middleware/errorHandler.js';
@@ -52,6 +55,9 @@ app.use('/api', quizRoutes);            // /api/documents/:id/quiz, /api/quiz/:i
 app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/learning-path', learningPathRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

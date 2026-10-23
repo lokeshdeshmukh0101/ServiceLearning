@@ -36,13 +36,16 @@ export interface MCQQuestion {
   type: 'mcq';
   question: string;
   options: [string, string, string, string]; // exactly 4
-  // correctIndex and explanation stored server-side only
+  topic?: string;
+  sourceReference?: string;
 }
 
 export interface TFQuestion {
   id: string;
   type: 'true_false';
   question: string;
+  topic?: string;
+  sourceReference?: string;
 }
 
 export type ClientQuestion = MCQQuestion | TFQuestion;
@@ -72,6 +75,15 @@ export interface ScoredQuestion {
   correct: boolean;
   correctAnswer: number | boolean;
   explanation: string;
+  topic: string;
+  sourceReference?: string;
+}
+
+export interface TopicPerformance {
+  topic: string;
+  total: number;
+  correct: number;
+  percentage: number;
 }
 
 export interface AttemptResult {
@@ -81,6 +93,9 @@ export interface AttemptResult {
   total: number;
   percentage: number;
   scoredQuestions: ScoredQuestion[];
+  topicBreakdown: TopicPerformance[];
+  weakTopics: string[];
+  strongTopics: string[];
   completedAt: string;
 }
 
@@ -92,6 +107,8 @@ const MCQItemSchema = z.object({
   options: z.tuple([z.string(), z.string(), z.string(), z.string()]),
   correctIndex: z.number().int().min(0).max(3),
   explanation: z.string().min(5),
+  topic: z.string().default('General Topic'),
+  sourceReference: z.string().optional(),
 });
 
 const TFItemSchema = z.object({
@@ -99,6 +116,8 @@ const TFItemSchema = z.object({
   question: z.string().min(5),
   correctAnswer: z.boolean(),
   explanation: z.string().min(5),
+  topic: z.string().default('General Topic'),
+  sourceReference: z.string().optional(),
 });
 
 const QuizOutputSchema = z.array(z.discriminatedUnion('type', [MCQItemSchema, TFItemSchema]));
@@ -223,16 +242,49 @@ export async function generateQuiz(
 
   // Split into client-safe questions and server-side answers
   const clientQuestions: ClientQuestion[] = [];
-  const answers: Array<{ questionId: string; correctAnswer: number | boolean; explanation: string }> = [];
+  const answers: Array<{
+    questionId: string;
+    correctAnswer: number | boolean;
+    explanation: string;
+    topic: string;
+    sourceReference?: string;
+  }> = [];
 
   for (const item of items) {
     const qId = randomUUID();
+    const topic = item.topic?.trim() || 'General Concept';
+    const sourceReference = item.sourceReference?.trim();
     if (item.type === 'mcq') {
-      clientQuestions.push({ id: qId, type: 'mcq', question: item.question, options: item.options });
-      answers.push({ questionId: qId, correctAnswer: item.correctIndex, explanation: item.explanation });
+      clientQuestions.push({
+        id: qId,
+        type: 'mcq',
+        question: item.question,
+        options: item.options,
+        topic,
+        sourceReference,
+      });
+      answers.push({
+        questionId: qId,
+        correctAnswer: item.correctIndex,
+        explanation: item.explanation,
+        topic,
+        sourceReference,
+      });
     } else {
-      clientQuestions.push({ id: qId, type: 'true_false', question: item.question });
-      answers.push({ questionId: qId, correctAnswer: item.correctAnswer, explanation: item.explanation });
+      clientQuestions.push({
+        id: qId,
+        type: 'true_false',
+        question: item.question,
+        topic,
+        sourceReference,
+      });
+      answers.push({
+        questionId: qId,
+        correctAnswer: item.correctAnswer,
+        explanation: item.explanation,
+        topic,
+        sourceReference,
+      });
     }
   }
 
@@ -276,25 +328,58 @@ export async function submitAttempt(
   const quizRow = await get<any>(`SELECT * FROM quizzes WHERE id = ?`, [quizId]);
   if (!quizRow) return { error: 'Quiz not found.' };
 
-  const serverAnswers: Array<{ questionId: string; correctAnswer: number | boolean; explanation: string }> =
-    JSON.parse(quizRow.answersJson);
+  const serverAnswers: Array<{
+    questionId: string;
+    correctAnswer: number | boolean;
+    explanation: string;
+    topic?: string;
+    sourceReference?: string;
+  }> = JSON.parse(quizRow.answersJson);
 
   const answerMap = new Map(serverAnswers.map((a) => [a.questionId, a]));
 
   let score = 0;
   const scoredQuestions: ScoredQuestion[] = [];
+  const topicMap = new Map<string, { total: number; correct: number }>();
 
   for (const ua of userAnswers) {
     const server = answerMap.get(ua.questionId);
     if (!server) continue;
     const correct = ua.answer === server.correctAnswer;
     if (correct) score++;
+    const topic = server.topic || 'General Concept';
     scoredQuestions.push({
       questionId: ua.questionId,
       correct,
       correctAnswer: server.correctAnswer,
       explanation: server.explanation,
+      topic,
+      sourceReference: server.sourceReference,
     });
+
+    const perf = topicMap.get(topic) || { total: 0, correct: 0 };
+    perf.total += 1;
+    if (correct) perf.correct += 1;
+    topicMap.set(topic, perf);
+  }
+
+  const topicBreakdown: TopicPerformance[] = [];
+  const weakTopics: string[] = [];
+  const strongTopics: string[] = [];
+
+  for (const [topic, stats] of topicMap.entries()) {
+    const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+    topicBreakdown.push({
+      topic,
+      total: stats.total,
+      correct: stats.correct,
+      percentage: pct,
+    });
+    if (pct < 70) {
+      weakTopics.push(topic);
+    } else {
+      strongTopics.push(topic);
+    }
   }
 
   const total = serverAnswers.length;
@@ -322,6 +407,9 @@ export async function submitAttempt(
     total,
     percentage: total > 0 ? Math.round((score / total) * 100) : 0,
     scoredQuestions,
+    topicBreakdown,
+    weakTopics,
+    strongTopics,
     completedAt,
   };
 }
@@ -375,12 +463,13 @@ STRICT RULES:
 - Every question must be grounded in the provided document text.
 - MCQ: exactly 4 options, exactly 1 correct answer (correctIndex = 0-3).
 - Every question must have a short explanation (1-2 sentences from the document).
+- Every question must include a "topic" field (2-4 words identifying the exact concept or subject tested, e.g. "Elasticity of Demand", "Routing Tables").
 - Return ONLY a valid JSON array. No markdown, no code fences, no commentary.
 
 OUTPUT FORMAT (JSON array):
 [
-  {"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"explanation":"..."},
-  {"type":"true_false","question":"...","correctAnswer":true,"explanation":"..."}
+  {"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"explanation":"...","topic":"Concept Name"},
+  {"type":"true_false","question":"...","correctAnswer":true,"explanation":"...","topic":"Concept Name"}
 ]
 
 DOCUMENT CONTENT:

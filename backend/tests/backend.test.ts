@@ -115,10 +115,27 @@ describe('Text Extraction', () => {
     expect(res.extractionError?.message).toMatch(/not supported/i);
   });
 
-  it('returns UNSUPPORTED error for .pptx format', async () => {
-    const p = await writeTmp('legacy.pptx', 'fake pptx content');
-    const res = await extractText(p, 'pptx');
+  it('returns UNSUPPORTED error for legacy .ppt format', async () => {
+    const p = await writeTmp('legacy.ppt', 'fake binary ppt content');
+    const res = await extractText(p, 'ppt');
     expect(res.extractionError?.code).toBe('UNSUPPORTED');
+  });
+
+  it('extracts text and slide boundaries from valid .pptx format', async () => {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    zip.file('ppt/slides/slide1.xml', '<p:sp><a:t>Introduction to Computer Systems and Hardware</a:t></p:sp>');
+    zip.file('ppt/slides/slide2.xml', '<p:sp><a:t>Memory Hierarchy and Cache Architecture</a:t></p:sp>');
+    const buf = await zip.generateAsync({ type: 'nodebuffer' });
+    const p = tmpFile('valid.pptx');
+    await fs.promises.writeFile(p, buf);
+    const res = await extractText(p, 'pptx');
+    expect(res.text).toContain('Introduction to Computer Systems');
+    expect(res.text).toContain('Memory Hierarchy');
+    expect(res.pages?.length).toBe(2);
+    expect(res.pages?.[0].pageNumber).toBe(1);
+    expect(res.pages?.[1].pageNumber).toBe(2);
+    expect(res.extractionError).toBeUndefined();
   });
 
   it('extracts text from markdown file', async () => {

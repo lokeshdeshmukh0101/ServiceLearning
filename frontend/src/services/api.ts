@@ -28,11 +28,20 @@ export interface SearchResponse {
   }>;
 }
 
+export type StudyMode =
+  | 'summary'
+  | 'key_concepts'
+  | 'simplified'
+  | 'revision_points'
+  | 'chapter_breakdown'
+  | 'revision_questions';
+
 export interface SummaryResult {
   summary: string;
   cached: boolean;
   language: string;
   length: string;
+  mode: StudyMode;
   model: string;
   generatedAt: string;
 }
@@ -49,12 +58,16 @@ export interface MCQQuestion {
   type: 'mcq';
   question: string;
   options: [string, string, string, string];
+  topic?: string;
+  sourceReference?: string;
 }
 
 export interface TFQuestion {
   id: string;
   type: 'true_false';
   question: string;
+  topic?: string;
+  sourceReference?: string;
 }
 
 export type ClientQuestion = MCQQuestion | TFQuestion;
@@ -84,6 +97,15 @@ export interface ScoredQuestion {
   correct: boolean;
   correctAnswer: number | boolean;
   explanation: string;
+  topic?: string;
+  sourceReference?: string;
+}
+
+export interface TopicPerformance {
+  topic: string;
+  total: number;
+  correct: number;
+  percentage: number;
 }
 
 export interface AttemptResult {
@@ -93,7 +115,37 @@ export interface AttemptResult {
   total: number;
   percentage: number;
   scoredQuestions: ScoredQuestion[];
+  topicBreakdown?: TopicPerformance[];
+  weakTopics?: string[];
+  strongTopics?: string[];
   completedAt: string;
+}
+
+export interface RevisionRecommendation {
+  topic: string;
+  advice: string;
+  excerpt: string;
+  pageReference?: number | null;
+}
+
+export interface LearningPathRecord {
+  id: string;
+  userId: string;
+  documentId: string;
+  documentTitle: string;
+  fileType: string;
+  step: number;
+  lastQuizId: string | null;
+  lastScore: number | null;
+  lastTotal: number | null;
+  lastPercentage: number | null;
+  previousPercentage: number | null;
+  weakTopics: string[];
+  strongTopics: string[];
+  revisions: RevisionRecommendation[];
+  followUpQuizId: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 
 export interface FeedbackInput {
@@ -162,16 +214,74 @@ export const api = {
     return res.data;
   },
 
-  // ─── AI Summary ─────────────────────────────────────────────────────────────
+  // ─── AI Summary & Study Learning ───────────────────────────────────────────
 
   async generateSummary(
     documentId: string,
     language: 'en' | 'hi' | 'mr' = 'en',
-    length: 'short' | 'medium' | 'long' = 'medium'
+    length: 'short' | 'medium' | 'long' = 'medium',
+    mode: StudyMode = 'summary'
   ): Promise<SummaryResult> {
     const res = await axios.post<SummaryResult>(
       `${API_BASE_URL}/documents/${documentId}/summary`,
-      { language, length },
+      { language, length, mode },
+      getDevHeaders()
+    );
+    return res.data;
+  },
+
+  // ─── Smart Learning Path ───────────────────────────────────────────────────
+
+  async getLearningPath(documentId: string): Promise<LearningPathRecord> {
+    const res = await axios.get<{ path: LearningPathRecord }>(
+      `${API_BASE_URL}/learning-path/${documentId}`,
+      getDevHeaders()
+    );
+    return res.data.path;
+  },
+
+  async listLearningPaths(): Promise<LearningPathRecord[]> {
+    const res = await axios.get<{ paths: LearningPathRecord[] }>(
+      `${API_BASE_URL}/learning-path`,
+      getDevHeaders()
+    );
+    return res.data.paths;
+  },
+
+  async updateLearningPathProgress(documentId: string, step: number): Promise<LearningPathRecord> {
+    const res = await axios.post<{ path: LearningPathRecord }>(
+      `${API_BASE_URL}/learning-path/${documentId}/progress`,
+      { step },
+      getDevHeaders()
+    );
+    return res.data.path;
+  },
+
+  async syncQuizToLearningPath(
+    documentId: string,
+    quizId: string,
+    score: number,
+    total: number,
+    weakTopics: string[],
+    strongTopics: string[],
+    language: 'en' | 'hi' | 'mr' = 'en'
+  ): Promise<LearningPathRecord> {
+    const res = await axios.post<{ path: LearningPathRecord }>(
+      `${API_BASE_URL}/learning-path/${documentId}/sync-quiz`,
+      { quizId, score, total, weakTopics, strongTopics, language },
+      getDevHeaders()
+    );
+    return res.data.path;
+  },
+
+  async generateFollowUpQuiz(
+    documentId: string,
+    language: 'en' | 'hi' | 'mr' = 'en',
+    difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+  ): Promise<QuizGenerateResponse> {
+    const res = await axios.post<QuizGenerateResponse>(
+      `${API_BASE_URL}/learning-path/${documentId}/follow-up-quiz`,
+      { language, difficulty },
       getDevHeaders()
     );
     return res.data;
@@ -234,4 +344,68 @@ export const api = {
   getScreenshotUrl(feedbackId: string): string {
     return `${API_BASE_URL}/feedback/${feedbackId}/screenshot`;
   },
+
+  // ─── Categories ─────────────────────────────────────────────────────────────
+
+  async getCategories(): Promise<Category[]> {
+    const res = await axios.get<Category[]>(`${API_BASE_URL}/categories`, getDevHeaders());
+    return res.data;
+  },
+
+  async createCategory(name: string, description?: string, icon?: string): Promise<Category> {
+    const res = await axios.post<Category>(`${API_BASE_URL}/categories`, { name, description, icon }, getDevHeaders());
+    return res.data;
+  },
+
+  async updateCategory(id: string, updates: { name?: string; description?: string }): Promise<Category> {
+    const res = await axios.put<Category>(`${API_BASE_URL}/categories/${id}`, updates, getDevHeaders());
+    return res.data;
+  },
+
+  async deleteCategory(id: string): Promise<{ success: boolean }> {
+    const res = await axios.delete<{ success: boolean }>(`${API_BASE_URL}/categories/${id}`, getDevHeaders());
+    return res.data;
+  },
+
+  // ─── Users & Roles ──────────────────────────────────────────────────────────
+
+  async getUsers(): Promise<ManagedUser[]> {
+    const res = await axios.get<ManagedUser[]>(`${API_BASE_URL}/users`, getDevHeaders());
+    return res.data;
+  },
+
+  async createUser(data: { name: string; email: string; role?: 'ADMIN' | 'VIEWER'; department?: string; quotaMB?: number }): Promise<ManagedUser> {
+    const res = await axios.post<ManagedUser>(`${API_BASE_URL}/users`, data, getDevHeaders());
+    return res.data;
+  },
+
+  async updateUser(id: string, updates: Partial<ManagedUser>): Promise<ManagedUser> {
+    const res = await axios.put<ManagedUser>(`${API_BASE_URL}/users/${id}`, updates, getDevHeaders());
+    return res.data;
+  },
+
+  async deleteUser(id: string): Promise<{ success: boolean }> {
+    const res = await axios.delete<{ success: boolean }>(`${API_BASE_URL}/users/${id}`, getDevHeaders());
+    return res.data;
+  },
 };
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  count?: number;
+}
+
+export interface ManagedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'VIEWER';
+  status: 'Active' | 'Deactivated';
+  department: string;
+  quotaMB: number;
+  usedMB: number;
+}
+

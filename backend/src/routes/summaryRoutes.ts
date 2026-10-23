@@ -29,6 +29,14 @@ const summaryRateLimit = rateLimit({
 const SummaryRequestSchema = z.object({
   language: z.enum(['en', 'hi', 'mr']).default('en'),
   length: z.enum(['short', 'medium', 'long']).default('medium'),
+  mode: z.enum([
+    'summary',
+    'key_concepts',
+    'simplified',
+    'revision_points',
+    'chapter_breakdown',
+    'revision_questions',
+  ]).default('summary'),
 });
 
 router.post('/:id/summary', requireAuth, summaryRateLimit, async (req: Request, res: Response, next: NextFunction) => {
@@ -60,7 +68,7 @@ router.post('/:id/summary', requireAuth, summaryRateLimit, async (req: Request, 
       return;
     }
 
-    const { language, length } = parsed.data;
+    const { language, length, mode } = parsed.data;
 
     // Use stored extracted text, or re-extract from disk if it's missing
     let extractedText = (doc.extractedText || '').trim();
@@ -88,7 +96,7 @@ router.post('/:id/summary', requireAuth, summaryRateLimit, async (req: Request, 
       id,
       extractedText,
       pages,
-      { language: language as SummaryLanguage, length: length as SummaryLength }
+      { language: language as SummaryLanguage, length: length as SummaryLength, mode }
     );
 
     if ('error' in result) {

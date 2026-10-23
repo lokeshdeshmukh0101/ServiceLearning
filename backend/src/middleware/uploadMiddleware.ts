@@ -28,18 +28,17 @@ const storage = multer.diskStorage({
   },
 });
 
-// Strict allowlist — extension only at this stage; magic bytes checked in controller
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.txt', '.md']);
-const LEGACY_EXTENSIONS = new Set(['.doc', '.ppt', '.pptx']);
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.pptx', '.txt', '.md']);
+const LEGACY_EXTENSIONS = new Set(['.doc', '.ppt']);
 
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const ext = path.extname(file.originalname).toLowerCase();
   if (LEGACY_EXTENSIONS.has(ext)) {
-    cb(new Error(`Format ${ext} is not supported. Please convert to DOCX or PDF.`));
+    cb(new Error(`Format ${ext} is not supported. Please convert to modern format.`));
     return;
   }
   if (!ALLOWED_EXTENSIONS.has(ext)) {
-    cb(new Error('Unsupported file type. Accepted: PDF, DOCX, TXT, MD.'));
+    cb(new Error('Unsupported file type. Accepted: PDF, DOCX, PPTX, TXT, MD.'));
     return;
   }
   cb(null, true);

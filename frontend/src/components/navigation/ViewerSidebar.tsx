@@ -3,9 +3,11 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   BookOpen, LayoutDashboard, Library, Grid, Clock, Download,
   User, LogOut, X, ShieldCheck, Upload, FileText, Users, Settings, Sparkles,
+  Compass, MessageSquarePlus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { FeedbackModal } from '../feedback/FeedbackModal';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -15,6 +17,7 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   const { user, role, logout, switchRole } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [feedbackOpen, setFeedbackOpen] = React.useState(false);
 
   const handleLogout = () => {
     logout();
@@ -23,6 +26,7 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
 
   const navItems = [
     { label: t('nav.dashboard'), icon: LayoutDashboard, path: '/library/dashboard' },
+    { label: t('nav.learningPath'), icon: Compass, path: '/library/learning-path', badge: 'USP' },
     { label: t('nav.library'), icon: Library, path: '/library' },
     { label: t('nav.categories'), icon: Grid, path: '/library/categories' },
     { label: t('nav.recent'), icon: Clock, path: '/library/recent' },
@@ -107,7 +111,12 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
               }
             >
               <item.icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
+              <span className="flex-1 text-left">{item.label}</span>
+              {'badge' in item && item.badge && (
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 shadow-sm">
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
 
@@ -158,6 +167,14 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
         </NavLink>
 
         <button
+          onClick={() => setFeedbackOpen(true)}
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-300 border border-transparent hover:border-indigo-500/20 transition-all duration-200"
+        >
+          <MessageSquarePlus className="w-4 h-4 shrink-0 text-indigo-400" />
+          <span>{t('feedback.title')}</span>
+        </button>
+
+        <button
           onClick={handleLogout}
           aria-label={t('auth.signIn')}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-red-500/10 hover:text-red-400 border border-transparent hover:border-red-500/20 transition-all duration-200"
@@ -166,6 +183,8 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
           <span>{t('common.back')}</span>
         </button>
       </div>
+
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </aside>
   );
 };
