@@ -57,18 +57,31 @@ export const ViewerDashboardPage: React.FC = () => {
     }
   };
 
-  const categoriesList = [
-    { name: 'Programming', icon: Code, desc: 'Python, C++, Java & syntax guides', bg: 'bg-indigo-50 border-indigo-100 text-indigo-600' },
-    { name: 'Artificial Intelligence', icon: Cpu, desc: 'AI foundations & neural networks', bg: 'bg-blue-50 border-blue-100 text-blue-600' },
-    { name: 'Machine Learning', icon: Brain, desc: 'Algorithms & predictive modeling', bg: 'bg-violet-50 border-violet-100 text-violet-600' },
-    { name: 'Excel', icon: FileSpreadsheet, desc: 'Data analysis & spreadsheet formulas', bg: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-    { name: 'Web Development', icon: Globe, desc: 'HTML, CSS, React & full-stack development', bg: 'bg-cyan-50 border-cyan-100 text-cyan-600' },
-    { name: 'Computer Networks', icon: Network, desc: 'Protocols, TCP/IP & network architecture', bg: 'bg-amber-50 border-amber-100 text-amber-600' },
-    { name: 'Data Structures', icon: Database, desc: 'Arrays, Trees, Graphs & Algorithms', bg: 'bg-rose-50 border-rose-100 text-rose-600' },
-    { name: 'Prompt Engineering', icon: Sparkles, desc: 'LLM techniques & instruction design', bg: 'bg-sky-50 border-sky-100 text-sky-600' },
+  const CATEGORY_ICON_MAP: Record<string, any> = {
+    Programming: Code,
+    'Artificial Intelligence': Cpu,
+    'Machine Learning': Brain,
+    Excel: FileSpreadsheet,
+    'Web Development': Globe,
+    'Computer Networks': Network,
+    'Data Structures': Database,
+    'Prompt Engineering': Sparkles,
+  };
+
+  const CATEGORY_COLORS = [
+    'bg-indigo-50 border-indigo-100 text-indigo-600',
+    'bg-blue-50 border-blue-100 text-blue-600',
+    'bg-violet-50 border-violet-100 text-violet-600',
+    'bg-emerald-50 border-emerald-100 text-emerald-600',
+    'bg-cyan-50 border-cyan-100 text-cyan-600',
+    'bg-amber-50 border-amber-100 text-amber-600',
+    'bg-rose-50 border-rose-100 text-rose-600',
+    'bg-sky-50 border-sky-100 text-sky-600',
   ];
 
-  const quickSearchTags = ['Python', 'Machine Learning', 'Excel Formulas', 'SQL Database'];
+  const quickSearchTags = liveCategories.length > 0
+    ? liveCategories.slice(0, 4).map((c) => c.name)
+    : ['Python', 'SQL', 'Algorithms', 'React'];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,23 +254,35 @@ export const ViewerDashboardPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {categoriesList.map((cat, idx) => (
-            <div
-              key={idx}
-              onClick={() => navigate(`/library?category=${encodeURIComponent(cat.name)}`)}
-              className="bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:shadow-card-hover transition-all duration-200 cursor-pointer space-y-3 group"
-            >
-              <div className={`p-3 w-11 h-11 rounded-xl border ${cat.bg} transition-transform group-hover:scale-110 duration-200 flex items-center justify-center`}>
-                <cat.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">{cat.desc}</p>
-              </div>
+          {liveCategories.length === 0 ? (
+            <div className="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+              No categories available at the moment.
             </div>
-          ))}
+          ) : (
+            liveCategories.map((cat, idx) => {
+              const IconComp = CATEGORY_ICON_MAP[cat.name] || Grid;
+              const colorCls = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+              return (
+                <div
+                  key={cat.id || cat.name}
+                  onClick={() => navigate(`/library?category=${encodeURIComponent(cat.name)}`)}
+                  className="bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:shadow-card-hover transition-all duration-200 cursor-pointer space-y-3 group"
+                >
+                  <div className={`p-3 w-11 h-11 rounded-xl border ${colorCls} transition-transform group-hover:scale-110 duration-200 flex items-center justify-center`}>
+                    <IconComp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {cat.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                      {cat.description || 'Academic domain category for curated study resources.'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

@@ -125,12 +125,7 @@ export const LibraryPage: React.FC = () => {
     return a.filename.localeCompare(b.filename);
   });
 
-  const categoriesOptions = categories.length > 0
-    ? categories.map((c) => c.name)
-    : [
-        'Programming', 'Artificial Intelligence', 'Machine Learning', 'Excel',
-        'Web Development', 'Computer Networks', 'Data Structures', 'Prompt Engineering',
-      ];
+  const categoriesOptions = categories.map((c) => c.name);
 
   const card = isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200';
   const text = isDark ? 'text-slate-100' : 'text-slate-900';
