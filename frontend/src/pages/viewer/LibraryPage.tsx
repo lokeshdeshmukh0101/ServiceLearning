@@ -44,6 +44,7 @@ export const LibraryPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [materials, setMaterials] = useState<Document[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMaterial, setSelectedMaterial] = useState<Document | null>(null);
 
@@ -54,6 +55,21 @@ export const LibraryPage: React.FC = () => {
   useEffect(() => {
     fetchMaterials();
   }, [searchParams, selectedFileType]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const cats = await api.getCategories();
+      if (Array.isArray(cats)) {
+        setCategories(cats);
+      }
+    } catch (err) {
+      console.error('Failed to load categories for library:', err);
+    }
+  };
 
   const fetchMaterials = async () => {
     setLoading(true);
@@ -109,10 +125,12 @@ export const LibraryPage: React.FC = () => {
     return a.filename.localeCompare(b.filename);
   });
 
-  const categoriesOptions = [
-    'Programming', 'Artificial Intelligence', 'Machine Learning', 'Excel',
-    'Web Development', 'Computer Networks', 'Data Structures', 'Prompt Engineering',
-  ];
+  const categoriesOptions = categories.length > 0
+    ? categories.map((c) => c.name)
+    : [
+        'Programming', 'Artificial Intelligence', 'Machine Learning', 'Excel',
+        'Web Development', 'Computer Networks', 'Data Structures', 'Prompt Engineering',
+      ];
 
   const card = isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200';
   const text = isDark ? 'text-slate-100' : 'text-slate-900';

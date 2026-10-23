@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, CheckCircle2, AlertCircle, X, ArrowLeft } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, X, ArrowLeft, Grid } from 'lucide-react';
 import { api } from '../../services/api';
 
 export const UploadMaterialPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Programming');
+  const [category, setCategory] = useState('');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [tagsInput, setTagsInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -15,6 +17,30 @@ export const UploadMaterialPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchActiveCategories();
+  }, []);
+
+  const fetchActiveCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const data = await api.getCategories();
+      if (Array.isArray(data) && data.length > 0) {
+        setCategories(data);
+        setCategory(data[0].name);
+      } else {
+        setCategories([]);
+        setCategory('General');
+      }
+    } catch (err) {
+      console.error('Failed to load active categories for upload:', err);
+      setCategories([]);
+      setCategory('General');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -171,20 +197,34 @@ export const UploadMaterialPage: React.FC = () => {
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Academic Category</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700">Academic Category</label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/categories')}
+                  className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 font-medium"
+                >
+                  <Grid className="w-3 h-3" />
+                  <span>Manage ({categories.length})</span>
+                </button>
+              </div>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                disabled={loadingCategories}
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-600 disabled:bg-slate-50 disabled:text-slate-400"
               >
-                <option value="Programming">Programming</option>
-                <option value="Artificial Intelligence">Artificial Intelligence</option>
-                <option value="Machine Learning">Machine Learning</option>
-                <option value="Excel">Excel</option>
-                <option value="Web Development">Web Development</option>
-                <option value="Computer Networks">Computer Networks</option>
-                <option value="Data Structures">Data Structures</option>
-                <option value="Prompt Engineering">Prompt Engineering</option>
+                {loadingCategories ? (
+                  <option value="">Loading active categories...</option>
+                ) : categories.length === 0 ? (
+                  <option value="General">General (No categories found)</option>
+                ) : (
+                  categories.map((c) => (
+                    <option key={c.id || c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 

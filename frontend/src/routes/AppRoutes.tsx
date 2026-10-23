@@ -71,6 +71,7 @@ export const AppRoutes: React.FC = () => {
           </ViewerLayout>
         }
       />
+      <Route path="/categories" element={<Navigate to="/library/categories" replace />} />
       <Route
         path="/library/recent"
         element={

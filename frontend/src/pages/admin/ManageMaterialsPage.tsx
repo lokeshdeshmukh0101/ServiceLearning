@@ -10,6 +10,7 @@ import { AdminNavTabs } from '../../components/navigation/AdminNavTabs';
 
 export const ManageMaterialsPage: React.FC = () => {
   const [materials, setMaterials] = useState<Document[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -29,8 +30,14 @@ export const ManageMaterialsPage: React.FC = () => {
   const fetchMaterials = async () => {
     setLoading(true);
     try {
-      const docs = await api.getDocuments();
+      const [docs, cats] = await Promise.all([
+        api.getDocuments(),
+        api.getCategories().catch(() => []),
+      ]);
       setMaterials(docs);
+      if (Array.isArray(cats)) {
+        setCategories(cats);
+      }
     } catch (err) {
       console.error('Failed to load materials:', err);
     } finally {
@@ -124,15 +131,12 @@ export const ManageMaterialsPage: React.FC = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="w-full text-xs p-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
             >
-              <option value="">All Categories</option>
-              <option value="Programming">Programming</option>
-              <option value="Artificial Intelligence">Artificial Intelligence</option>
-              <option value="Machine Learning">Machine Learning</option>
-              <option value="Excel">Excel</option>
-              <option value="Web Development">Web Development</option>
-              <option value="Computer Networks">Computer Networks</option>
-              <option value="Data Structures">Data Structures</option>
-              <option value="Prompt Engineering">Prompt Engineering</option>
+              <option value="">All Categories ({categories.length})</option>
+              {categories.map((c) => (
+                <option key={c.id || c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
             </select>
           </div>
 
