@@ -1,14 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FileText, Grid, Users, Upload } from 'lucide-react';
+import { LayoutDashboard, FileText, Grid, Users, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export const AdminNavTabs: React.FC = () => {
   const { t } = useTranslation();
 
   const tabs = [
+    { label: t('nav.overview', 'Overview'), path: '/admin/dashboard', icon: LayoutDashboard },
     { label: t('nav.manageMaterials', 'Learning Materials'), path: '/admin/materials', icon: FileText },
-    { label: t('nav.manageCategories', 'Manage Categories'), path: '/admin/categories', icon: Grid, badge: 'Active' },
+    { label: t('nav.manageCategories', 'Manage Categories'), path: '/admin/categories', icon: Grid },
     { label: t('nav.manageUsers', 'Manage Users & Roles'), path: '/admin/users', icon: Users },
   ];
 

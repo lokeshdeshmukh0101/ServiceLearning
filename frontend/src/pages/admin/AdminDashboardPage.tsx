@@ -16,10 +16,13 @@ import { api } from '../../services/api';
 import { MaterialModal } from '../../components/materials/MaterialModal';
 import { DeleteModal } from '../../components/ui/DeleteModal';
 import { TableRowSkeleton } from '../../components/ui/SkeletonLoaders';
+import { AdminNavTabs } from '../../components/navigation/AdminNavTabs';
 
 export const AdminDashboardPage: React.FC = () => {
   const [materials, setMaterials] = useState<Document[]>([]);
   const [stats, setStats] = useState<SystemStatus | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedMaterial, setSelectedMaterial] = useState<Document | null>(null);
@@ -35,12 +38,16 @@ export const AdminDashboardPage: React.FC = () => {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [docs, sysStats] = await Promise.all([
+      const [docs, sysStats, cats, userList] = await Promise.all([
         api.getDocuments(),
         api.getSettings(),
+        api.getCategories().catch(() => []),
+        api.getUsers().catch(() => []),
       ]);
       setMaterials(docs);
       setStats(sysStats);
+      setCategories(cats || []);
+      setUsers(userList || []);
     } catch (err) {
       console.error('Failed to load admin data:', err);
     } finally {
@@ -68,10 +75,16 @@ export const AdminDashboardPage: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const categoryCount = categories.length > 0 ? categories.length : (stats?.totalCategories ?? 0);
+  const userCount = users.length > 0 ? users.length : (stats?.totalUsers ?? 0);
+  const activeUserCount = users.length > 0
+    ? users.filter((u) => u.status === 'Active').length
+    : (stats?.activeUsers ?? 0);
+
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
+    <div className="space-y-6 animate-fade-in pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Faculty Admin Dashboard</h1>
           <p className="text-xs text-slate-500 font-medium mt-1">Manage educational resources, student categories, and library content.</p>
@@ -85,39 +98,54 @@ export const AdminDashboardPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Admin Quick Navigation Tabs */}
+      <AdminNavTabs />
+
       {/* Stats Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">
+        <div
+          onClick={() => navigate('/admin/materials')}
+          className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-blue-300 transition-all space-y-2 cursor-pointer group"
+          title="Click to view all materials"
+        >
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Materials</span>
-            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Total Materials</span>
+            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl md:text-3xl font-extrabold text-slate-900">{stats?.totalDocuments || materials.length}</p>
-          <span className="text-[11px] text-slate-400 font-medium">Indexed documents</span>
+          <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">Manage documents →</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">
+        <div
+          onClick={() => navigate('/admin/categories')}
+          className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-teal-300 transition-all space-y-2 cursor-pointer group"
+          title="Click to manage categories"
+        >
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Categories</span>
-            <div className="p-2.5 rounded-xl bg-teal-50 text-teal-600">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-teal-600 transition-colors">Total Categories</span>
+            <div className="p-2.5 rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all">
               <Grid className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl md:text-3xl font-extrabold text-slate-900">8</p>
-          <span className="text-[11px] text-slate-400 font-medium">Curated domains</span>
+          <p className="text-2xl md:text-3xl font-extrabold text-slate-900">{categoryCount}</p>
+          <span className="text-[11px] text-teal-600 font-medium flex items-center gap-1">Manage domains ({categoryCount}) →</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">
+        <div
+          onClick={() => navigate('/admin/users')}
+          className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-amber-300 transition-all space-y-2 cursor-pointer group"
+          title="Click to manage users and roles"
+        >
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Users</span>
-            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-amber-600 transition-colors">Total Users</span>
+            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl md:text-3xl font-extrabold text-slate-900">124</p>
-          <span className="text-[11px] text-slate-400 font-medium">Faculty & Students</span>
+          <p className="text-2xl md:text-3xl font-extrabold text-slate-900">{userCount}</p>
+          <span className="text-[11px] text-amber-600 font-medium flex items-center gap-1">{activeUserCount} active · Manage roles →</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">

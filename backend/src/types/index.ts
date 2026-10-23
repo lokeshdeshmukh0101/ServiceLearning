@@ -51,4 +51,8 @@ export interface SystemStatus {
   aiProvider: string;
   aiConfigured: boolean;
   model: string;
+  totalCategories?: number;
+  totalUsers?: number;
+  activeUsers?: number;
 }
+

@@ -230,6 +230,20 @@ export async function getLibraryStats(): Promise<SystemStatus> {
     else if (type === 'txt' || type === 'md' || type === 'markdown') txtCount++;
   }
 
+  let totalCategories = 0;
+  try {
+    const catRows = await query<any>(`SELECT COUNT(*) as cnt FROM categories`);
+    totalCategories = catRows[0]?.cnt || 0;
+  } catch {}
+
+  let totalUsers = 0;
+  let activeUsers = 0;
+  try {
+    const userRows = await query<any>(`SELECT COUNT(*) as cnt, SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) as activeCnt FROM users`);
+    totalUsers = userRows[0]?.cnt || 0;
+    activeUsers = userRows[0]?.activeCnt || 0;
+  } catch {}
+
   const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY;
   const aiProvider = process.env.LLM_PROVIDER || 'GEMINI';
   const model = getConfiguredAIModel();
@@ -243,6 +257,9 @@ export async function getLibraryStats(): Promise<SystemStatus> {
     aiProvider,
     aiConfigured: Boolean(apiKey && apiKey.trim().length > 0),
     model,
+    totalCategories,
+    totalUsers,
+    activeUsers,
   };
 }
 

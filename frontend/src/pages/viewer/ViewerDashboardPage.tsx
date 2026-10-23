@@ -28,6 +28,7 @@ export const ViewerDashboardPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [materials, setMaterials] = useState<Document[]>([]);
   const [stats, setStats] = useState<SystemStatus | null>(null);
+  const [liveCategories, setLiveCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMaterial, setSelectedMaterial] = useState<Document | null>(null);
   const navigate = useNavigate();
@@ -39,12 +40,16 @@ export const ViewerDashboardPage: React.FC = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [docs, sysStats] = await Promise.all([
+      const [docs, sysStats, cats] = await Promise.all([
         api.getDocuments(),
         api.getSettings(),
+        api.getCategories().catch(() => []),
       ]);
       setMaterials(docs);
       setStats(sysStats);
+      if (cats && Array.isArray(cats)) {
+        setLiveCategories(cats);
+      }
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     } finally {
@@ -181,15 +186,19 @@ export const ViewerDashboardPage: React.FC = () => {
           <span className="text-[11px] text-slate-400 font-medium">Available library resources</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">
+        <div
+          onClick={() => navigate('/categories')}
+          className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-teal-300 transition-all space-y-2 cursor-pointer group"
+          title="Browse all categories"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categories</span>
-            <div className="p-2.5 rounded-xl bg-teal-50 text-teal-600">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-teal-600 transition-colors">Categories</span>
+            <div className="p-2.5 rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all">
               <Grid className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl md:text-3xl font-extrabold text-slate-900">8</p>
-          <span className="text-[11px] text-slate-400 font-medium">Academic learning domains</span>
+          <p className="text-2xl md:text-3xl font-extrabold text-slate-900">{stats?.totalCategories ?? (liveCategories.length || 8)}</p>
+          <span className="text-[11px] text-teal-600 font-medium flex items-center gap-1">Browse domains ({stats?.totalCategories ?? (liveCategories.length || 8)}) →</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">
