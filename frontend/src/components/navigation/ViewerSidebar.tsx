@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   BookOpen, LayoutDashboard, Library, Grid, Clock, Download,
   User, LogOut, X, ShieldCheck, Upload, FileText, Users, Settings, Sparkles,
-  Compass, MessageSquarePlus,
+  Compass, MessageSquarePlus, MessageSquareWarning,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ export const ViewerSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
     { label: t('nav.dashboard'), icon: LayoutDashboard, path: '/library/dashboard' },
     { label: t('nav.learningPath'), icon: Compass, path: '/library/learning-path', badge: 'USP' },
     { label: t('nav.library'), icon: Library, path: '/library' },
+    { label: t('nav.myReports', 'My Reported Issues'), icon: MessageSquareWarning, path: '/library/reports' },
     { label: t('nav.categories'), icon: Grid, path: '/library/categories' },
     { label: t('nav.recent'), icon: Clock, path: '/library/recent' },
     { label: t('nav.downloads'), icon: Download, path: '/library/downloads' },

@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   BookOpen, LayoutDashboard, Library, Grid, Upload, FileText,
-  Users, Settings, LogOut, X, Eye, ShieldCheck, Activity,
+  Users, Settings, LogOut, X, Eye, ShieldCheck, Activity, MessageSquareWarning,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   const navGroup2 = [
     { label: t('document.upload'), icon: Upload, path: '/admin/materials/upload' },
     { label: t('nav.manageMaterials'), icon: FileText, path: '/admin/materials' },
+    { label: t('nav.manageReports', 'Reported Issues'), icon: MessageSquareWarning, path: '/admin/reports' },
     { label: t('nav.manageUsers'), icon: Users, path: '/admin/users' },
     { label: t('nav.auditLog'), icon: Activity, path: '/admin/audit' },
   ];

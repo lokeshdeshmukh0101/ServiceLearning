@@ -319,7 +319,7 @@ export const api = {
 
   // ─── Feedback ────────────────────────────────────────────────────────────────
 
-  async submitFeedback(data: FeedbackInput, screenshot?: File): Promise<{ report: any }> {
+  async submitFeedback(data: FeedbackInput, screenshot?: File): Promise<{ report: any; message?: string }> {
     const formData = new FormData();
     formData.append('data', JSON.stringify(data));
     if (screenshot) formData.append('screenshot', screenshot);

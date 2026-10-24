@@ -11,6 +11,7 @@ import { RecentPage } from '../pages/viewer/RecentPage';
 import { DownloadsPage } from '../pages/viewer/DownloadsPage';
 import { ProfilePage } from '../pages/viewer/ProfilePage';
 import { SmartLearningPathPage } from '../pages/viewer/SmartLearningPathPage';
+import { MyReportsPage } from '../pages/viewer/MyReportsPage';
 
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
 import { ManageMaterialsPage } from '../pages/admin/ManageMaterialsPage';
@@ -20,6 +21,7 @@ import { ManageCategoriesPage } from '../pages/admin/ManageCategoriesPage';
 import { ManageUsersPage } from '../pages/admin/ManageUsersPage';
 import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
 import { AuditLogPage } from '../pages/admin/AuditLogPage';
+import { ManageReportsPage } from '../pages/admin/ManageReportsPage';
 
 import { NotFoundPage } from '../pages/NotFoundPage';
 
@@ -96,6 +98,15 @@ export const AppRoutes: React.FC = () => {
           </ViewerLayout>
         }
       />
+      <Route
+        path="/library/reports"
+        element={
+          <ViewerLayout>
+            <MyReportsPage />
+          </ViewerLayout>
+        }
+      />
+      <Route path="/library/my-reports" element={<Navigate to="/library/reports" replace />} />
 
       {/* Admin Routes wrapped in AdminLayout */}
       <Route
@@ -135,6 +146,14 @@ export const AppRoutes: React.FC = () => {
         element={
           <AdminLayout>
             <ManageCategoriesPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <AdminLayout>
+            <ManageReportsPage />
           </AdminLayout>
         }
       />

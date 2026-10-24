@@ -19,7 +19,9 @@
     "settings": "Settings",
     "openMenu": "Open navigation menu",
     "openMobileMenu": "Open mobile navigation menu",
-    "learningPath": "Smart Learning Path"
+    "learningPath": "Smart Learning Path",
+    "myReports": "My Reported Issues",
+    "manageReports": "Reported Issues"
   },
   "auth": {
     "signIn": "Sign In",

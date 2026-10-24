@@ -138,7 +138,10 @@ router.post(
         screenshotPath,
       });
 
-      res.status(201).json({ report: sanitizeForClient(report, req.user!.role) });
+      res.status(201).json({
+        report: sanitizeForClient(report, req.user!.role),
+        message: 'Issue reported successfully!'
+      });
     } catch (err) {
       next(err);
     }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, Grid, Users, Upload } from 'lucide-react';
+import { LayoutDashboard, FileText, Grid, Users, Upload, MessageSquareWarning } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export const AdminNavTabs: React.FC = () => {
@@ -11,6 +11,7 @@ export const AdminNavTabs: React.FC = () => {
     { label: t('nav.manageMaterials', 'Learning Materials'), path: '/admin/materials', icon: FileText },
     { label: t('nav.manageCategories', 'Manage Categories'), path: '/admin/categories', icon: Grid },
     { label: t('nav.manageUsers', 'Manage Users & Roles'), path: '/admin/users', icon: Users },
+    { label: t('nav.manageReports', 'Reported Issues'), path: '/admin/reports', icon: MessageSquareWarning },
   ];
 
   return (
